@@ -4,7 +4,7 @@
 
 angular.module('tournament', [])
     .controller('TournamentController',function($scope, $http) {
-        $http.get('http://localhost:8080/tournament').
+        $http.get('http://localhost:8080').
             then(function (response) {
                 $scope.tournament = response.data;
         });
