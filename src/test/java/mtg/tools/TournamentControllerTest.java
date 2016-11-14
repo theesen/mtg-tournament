@@ -30,7 +30,7 @@ public class TournamentControllerTest
     @Test
     public void index() throws Exception
     {
-        mvc.perform(MockMvcRequestBuilders.get("/tournaments").accept(MediaType.APPLICATION_JSON))
+        mvc.perform(MockMvcRequestBuilders.get("/api").accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk());
     }
 

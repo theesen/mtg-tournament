@@ -8,7 +8,7 @@ target/
 .project
 .settings
 .springBeans
-
+node_modules/*
 ### IntelliJ IDEA ###
 .idea
 *.iws
@@ -22,3 +22,7 @@ nbbuild/
 dist/
 nbdist/
 .nb-gradle/
+/node/
+etc/
+node/
+/npm-debug.log

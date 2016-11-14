@@ -14,16 +14,6 @@ import java.util.Date;
 @Entity
 public class Tournament
 {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
-
-    @CreationTimestamp
-    private Date dateCreated;
-
-    private String name;
-
-
     public Date getDateCreated()
     {
         return dateCreated;
@@ -32,6 +22,7 @@ public class Tournament
 
     public String getName()
     {
+
         return name;
     }
 
@@ -40,5 +31,15 @@ public class Tournament
     {
         this.name = name;
     }
+
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @CreationTimestamp
+    private Date dateCreated;
+
+    private String name;
 
 }
