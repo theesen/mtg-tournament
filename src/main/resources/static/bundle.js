@@ -45,7 +45,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	__webpack_require__(1);
-	module.exports = __webpack_require__(215);
+	module.exports = __webpack_require__(211);
 
 
 /***/ },
@@ -67,8 +67,7 @@
 	
 	var React = __webpack_require__(2);
 	var ReactDOM = __webpack_require__(35);
-	var client = __webpack_require__(186);
-	// const fetch = require('fetch');
+	var axios = __webpack_require__(186);
 	
 	var App = function (_React$Component) {
 	    _inherits(App, _React$Component);
@@ -79,22 +78,28 @@
 	        var _this = _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).call(this, props));
 	
 	        _this.state = { tournaments: [] };
+	        _this.fetchTournaments = _this.fetchTournaments.bind(_this);
 	        return _this;
 	    }
 	
 	    _createClass(App, [{
 	        key: 'componentDidMount',
 	        value: function componentDidMount() {
+	            this.fetchTournaments();
+	        }
+	    }, {
+	        key: 'fetchTournaments',
+	        value: function fetchTournaments() {
 	            var _this2 = this;
 	
-	            client({ method: 'GET', path: '/api/tournament' }).then(function (response) {
-	                _this2.setState({ tournaments: response.entity._embedded.tournament });
+	            console.log('yeah');
+	            axios.get('/api/tournament').then(function (response) {
+	                _this2.setState({ tournaments: response.data._embedded.tournament });
 	            });
 	        }
 	    }, {
 	        key: 'render',
 	        value: function render() {
-	            console.log(this.state.tournaments);
 	            var tournaments = this.state.tournaments.map(function (tournament) {
 	                return React.createElement(
 	                    'li',
@@ -103,9 +108,14 @@
 	                );
 	            });
 	            return React.createElement(
-	                'ul',
+	                'div',
 	                null,
-	                tournaments
+	                React.createElement(
+	                    'ul',
+	                    null,
+	                    tournaments
+	                ),
+	                React.createElement(TournamentForm, { handleOnSubmit: this.fetchTournaments })
 	            );
 	        }
 	    }]);
@@ -113,14 +123,59 @@
 	    return App;
 	}(React.Component);
 	
-	// class TournamentList extends React.Component {
-	//     render() {
-	//         var tournaments = this.props.tournaments.map((tournament) => <li>tournament</li>);
-	//         return (
-	//             <ul>{tournaments}</ul>
-	//         )
-	//     }
-	// }
+	var TournamentForm = function (_React$Component2) {
+	    _inherits(TournamentForm, _React$Component2);
+	
+	    function TournamentForm(props) {
+	        _classCallCheck(this, TournamentForm);
+	
+	        var _this3 = _possibleConstructorReturn(this, (TournamentForm.__proto__ || Object.getPrototypeOf(TournamentForm)).call(this, props));
+	
+	        _this3.state = { name: '' };
+	        _this3.handleChange = _this3.handleChange.bind(_this3);
+	        _this3.handleSubmit = _this3.handleSubmit.bind(_this3);
+	        return _this3;
+	    }
+	
+	    _createClass(TournamentForm, [{
+	        key: 'handleChange',
+	        value: function handleChange(event) {
+	            this.setState({ name: event.target.value });
+	        }
+	    }, {
+	        key: 'handleSubmit',
+	        value: function handleSubmit(event) {
+	            var _this4 = this;
+	
+	            event.preventDefault();
+	            axios.post('api/tournament', {
+	                name: this.state.name
+	            }).then(function (response) {
+	                _this4.props.handleOnSubmit();
+	                _this4.setState({ name: '' });
+	            });
+	
+	            console.log('A new Tournament was submitted ' + this.state.name);
+	        }
+	    }, {
+	        key: 'render',
+	        value: function render() {
+	            return React.createElement(
+	                'form',
+	                { onSubmit: this.handleSubmit },
+	                React.createElement(
+	                    'label',
+	                    null,
+	                    'Name:',
+	                    React.createElement('input', { type: 'text', value: this.state.name, onChange: this.handleChange })
+	                ),
+	                React.createElement('input', { type: 'submit', value: 'Submit' })
+	            );
+	        }
+	    }]);
+	
+	    return TournamentForm;
+	}(React.Component);
 	
 	ReactDOM.render(React.createElement(App, null), document.getElementById('root'));
 
@@ -21949,226 +22004,385 @@
 /* 186 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/**
-	 * Created by t.gieselmann on 11/13/16.
-	 */
-	
-	'use strict';
-	
-	var rest = __webpack_require__(187);
-	var defaultRequest = __webpack_require__(193);
-	var mime = __webpack_require__(196);
-	var uriTemplateInterceptor = __webpack_require__(212);
-	var errorCode = __webpack_require__(213);
-	var baseRegistry = __webpack_require__(198);
-	
-	var registry = baseRegistry.child();
-	
-	registry.register('text/uri-list', __webpack_require__(214));
-	registry.register('application/hal+json', __webpack_require__(199));
-	
-	module.exports = rest.wrap(mime, { registry: registry }).wrap(uriTemplateInterceptor).wrap(errorCode).wrap(defaultRequest, { headers: { 'Accept': 'application/hal+json' } });
+	module.exports = __webpack_require__(187);
 
 /***/ },
 /* 187 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2014-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	var rest = __webpack_require__(188),
-	    browser = __webpack_require__(190);
+	var utils = __webpack_require__(188);
+	var bind = __webpack_require__(189);
+	var Axios = __webpack_require__(190);
+	var defaults = __webpack_require__(191);
 	
-	rest.setPlatformDefaultClient(browser);
+	/**
+	 * Create an instance of Axios
+	 *
+	 * @param {Object} defaultConfig The default config for the instance
+	 * @return {Axios} A new instance of Axios
+	 */
+	function createInstance(defaultConfig) {
+	  var context = new Axios(defaultConfig);
+	  var instance = bind(Axios.prototype.request, context);
 	
-	module.exports = rest;
+	  // Copy axios.prototype to instance
+	  utils.extend(instance, Axios.prototype, context);
+	
+	  // Copy context to instance
+	  utils.extend(instance, context);
+	
+	  return instance;
+	}
+	
+	// Create the default instance to be exported
+	var axios = createInstance(defaults);
+	
+	// Expose Axios class to allow class inheritance
+	axios.Axios = Axios;
+	
+	// Factory for creating new instances
+	axios.create = function create(instanceConfig) {
+	  return createInstance(utils.merge(defaults, instanceConfig));
+	};
+	
+	// Expose Cancel & CancelToken
+	axios.Cancel = __webpack_require__(208);
+	axios.CancelToken = __webpack_require__(209);
+	axios.isCancel = __webpack_require__(205);
+	
+	// Expose all/spread
+	axios.all = function all(promises) {
+	  return Promise.all(promises);
+	};
+	axios.spread = __webpack_require__(210);
+	
+	module.exports = axios;
+	
+	// Allow use of default import syntax in TypeScript
+	module.exports.default = axios;
 
 
 /***/ },
 /* 188 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2014-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	/**
-	 * Plain JS Object containing properties that represent an HTTP request.
-	 *
-	 * Depending on the capabilities of the underlying client, a request
-	 * may be cancelable. If a request may be canceled, the client will add
-	 * a canceled flag and cancel function to the request object. Canceling
-	 * the request will put the response into an error state.
-	 *
-	 * @field {string} [method='GET'] HTTP method, commonly GET, POST, PUT, DELETE or HEAD
-	 * @field {string|UrlBuilder} [path=''] path template with optional path variables
-	 * @field {Object} [params] parameters for the path template and query string
-	 * @field {Object} [headers] custom HTTP headers to send, in addition to the clients default headers
-	 * @field [entity] the HTTP entity, common for POST or PUT requests
-	 * @field {boolean} [canceled] true if the request has been canceled, set by the client
-	 * @field {Function} [cancel] cancels the request if invoked, provided by the client
-	 * @field {Client} [originator] the client that first handled this request, provided by the interceptor
-	 *
-	 * @class Request
-	 */
+	var bind = __webpack_require__(189);
+	
+	/*global toString:true*/
+	
+	// utils is a library of generic helper functions non-specific to axios
+	
+	var toString = Object.prototype.toString;
 	
 	/**
-	 * Plain JS Object containing properties that represent an HTTP response
+	 * Determine if a value is an Array
 	 *
-	 * @field {Object} [request] the request object as received by the root client
-	 * @field {Object} [raw] the underlying request object, like XmlHttpRequest in a browser
-	 * @field {number} [status.code] status code of the response (i.e. 200, 404)
-	 * @field {string} [status.text] status phrase of the response
-	 * @field {Object] [headers] response headers hash of normalized name, value pairs
-	 * @field [entity] the response body
-	 *
-	 * @class Response
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if value is an Array, otherwise false
 	 */
-	
-	/**
-	 * HTTP client particularly suited for RESTful operations.
-	 *
-	 * @field {function} wrap wraps this client with a new interceptor returning the wrapped client
-	 *
-	 * @param {Request} the HTTP request
-	 * @returns {ResponsePromise<Response>} a promise the resolves to the HTTP response
-	 *
-	 * @class Client
-	 */
-	
-	 /**
-	  * Extended when.js Promises/A+ promise with HTTP specific helpers
-	  *q
-	  * @method entity promise for the HTTP entity
-	  * @method status promise for the HTTP status code
-	  * @method headers promise for the HTTP response headers
-	  * @method header promise for a specific HTTP response header
-	  *
-	  * @class ResponsePromise
-	  * @extends Promise
-	  */
-	
-	var client, target, platformDefault;
-	
-	client = __webpack_require__(189);
-	
-	if (typeof Promise !== 'function' && console && console.log) {
-		console.log('An ES6 Promise implementation is required to use rest.js. See https://github.com/cujojs/when/blob/master/docs/es6-promise-shim.md for using when.js as a Promise polyfill.');
+	function isArray(val) {
+	  return toString.call(val) === '[object Array]';
 	}
 	
 	/**
-	 * Make a request with the default client
-	 * @param {Request} the HTTP request
-	 * @returns {Promise<Response>} a promise the resolves to the HTTP response
+	 * Determine if a value is an ArrayBuffer
+	 *
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if value is an ArrayBuffer, otherwise false
 	 */
-	function defaultClient() {
-		return target.apply(void 0, arguments);
+	function isArrayBuffer(val) {
+	  return toString.call(val) === '[object ArrayBuffer]';
 	}
 	
 	/**
-	 * Change the default client
-	 * @param {Client} client the new default client
+	 * Determine if a value is a FormData
+	 *
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if value is an FormData, otherwise false
 	 */
-	defaultClient.setDefaultClient = function setDefaultClient(client) {
-		target = client;
-	};
+	function isFormData(val) {
+	  return (typeof FormData !== 'undefined') && (val instanceof FormData);
+	}
 	
 	/**
-	 * Obtain a direct reference to the current default client
-	 * @returns {Client} the default client
+	 * Determine if a value is a view on an ArrayBuffer
+	 *
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if value is a view on an ArrayBuffer, otherwise false
 	 */
-	defaultClient.getDefaultClient = function getDefaultClient() {
-		return target;
-	};
+	function isArrayBufferView(val) {
+	  var result;
+	  if ((typeof ArrayBuffer !== 'undefined') && (ArrayBuffer.isView)) {
+	    result = ArrayBuffer.isView(val);
+	  } else {
+	    result = (val) && (val.buffer) && (val.buffer instanceof ArrayBuffer);
+	  }
+	  return result;
+	}
 	
 	/**
-	 * Reset the default client to the platform default
+	 * Determine if a value is a String
+	 *
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if value is a String, otherwise false
 	 */
-	defaultClient.resetDefaultClient = function resetDefaultClient() {
-		target = platformDefault;
-	};
+	function isString(val) {
+	  return typeof val === 'string';
+	}
 	
 	/**
-	 * @private
+	 * Determine if a value is a Number
+	 *
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if value is a Number, otherwise false
 	 */
-	defaultClient.setPlatformDefaultClient = function setPlatformDefaultClient(client) {
-		if (platformDefault) {
-			throw new Error('Unable to redefine platformDefaultClient');
-		}
-		target = platformDefault = client;
-	};
+	function isNumber(val) {
+	  return typeof val === 'number';
+	}
 	
-	module.exports = client(defaultClient);
+	/**
+	 * Determine if a value is undefined
+	 *
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if the value is undefined, otherwise false
+	 */
+	function isUndefined(val) {
+	  return typeof val === 'undefined';
+	}
+	
+	/**
+	 * Determine if a value is an Object
+	 *
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if value is an Object, otherwise false
+	 */
+	function isObject(val) {
+	  return val !== null && typeof val === 'object';
+	}
+	
+	/**
+	 * Determine if a value is a Date
+	 *
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if value is a Date, otherwise false
+	 */
+	function isDate(val) {
+	  return toString.call(val) === '[object Date]';
+	}
+	
+	/**
+	 * Determine if a value is a File
+	 *
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if value is a File, otherwise false
+	 */
+	function isFile(val) {
+	  return toString.call(val) === '[object File]';
+	}
+	
+	/**
+	 * Determine if a value is a Blob
+	 *
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if value is a Blob, otherwise false
+	 */
+	function isBlob(val) {
+	  return toString.call(val) === '[object Blob]';
+	}
+	
+	/**
+	 * Determine if a value is a Function
+	 *
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if value is a Function, otherwise false
+	 */
+	function isFunction(val) {
+	  return toString.call(val) === '[object Function]';
+	}
+	
+	/**
+	 * Determine if a value is a Stream
+	 *
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if value is a Stream, otherwise false
+	 */
+	function isStream(val) {
+	  return isObject(val) && isFunction(val.pipe);
+	}
+	
+	/**
+	 * Determine if a value is a URLSearchParams object
+	 *
+	 * @param {Object} val The value to test
+	 * @returns {boolean} True if value is a URLSearchParams object, otherwise false
+	 */
+	function isURLSearchParams(val) {
+	  return typeof URLSearchParams !== 'undefined' && val instanceof URLSearchParams;
+	}
+	
+	/**
+	 * Trim excess whitespace off the beginning and end of a string
+	 *
+	 * @param {String} str The String to trim
+	 * @returns {String} The String freed of excess whitespace
+	 */
+	function trim(str) {
+	  return str.replace(/^\s*/, '').replace(/\s*$/, '');
+	}
+	
+	/**
+	 * Determine if we're running in a standard browser environment
+	 *
+	 * This allows axios to run in a web worker, and react-native.
+	 * Both environments support XMLHttpRequest, but not fully standard globals.
+	 *
+	 * web workers:
+	 *  typeof window -> undefined
+	 *  typeof document -> undefined
+	 *
+	 * react-native:
+	 *  typeof document.createElement -> undefined
+	 */
+	function isStandardBrowserEnv() {
+	  return (
+	    typeof window !== 'undefined' &&
+	    typeof document !== 'undefined' &&
+	    typeof document.createElement === 'function'
+	  );
+	}
+	
+	/**
+	 * Iterate over an Array or an Object invoking a function for each item.
+	 *
+	 * If `obj` is an Array callback will be called passing
+	 * the value, index, and complete array for each item.
+	 *
+	 * If 'obj' is an Object callback will be called passing
+	 * the value, key, and complete object for each property.
+	 *
+	 * @param {Object|Array} obj The object to iterate
+	 * @param {Function} fn The callback to invoke for each item
+	 */
+	function forEach(obj, fn) {
+	  // Don't bother if no value provided
+	  if (obj === null || typeof obj === 'undefined') {
+	    return;
+	  }
+	
+	  // Force an array if not already something iterable
+	  if (typeof obj !== 'object' && !isArray(obj)) {
+	    /*eslint no-param-reassign:0*/
+	    obj = [obj];
+	  }
+	
+	  if (isArray(obj)) {
+	    // Iterate over array values
+	    for (var i = 0, l = obj.length; i < l; i++) {
+	      fn.call(null, obj[i], i, obj);
+	    }
+	  } else {
+	    // Iterate over object keys
+	    for (var key in obj) {
+	      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+	        fn.call(null, obj[key], key, obj);
+	      }
+	    }
+	  }
+	}
+	
+	/**
+	 * Accepts varargs expecting each argument to be an object, then
+	 * immutably merges the properties of each object and returns result.
+	 *
+	 * When multiple objects contain the same key the later object in
+	 * the arguments list will take precedence.
+	 *
+	 * Example:
+	 *
+	 * ```js
+	 * var result = merge({foo: 123}, {foo: 456});
+	 * console.log(result.foo); // outputs 456
+	 * ```
+	 *
+	 * @param {Object} obj1 Object to merge
+	 * @returns {Object} Result of all merge properties
+	 */
+	function merge(/* obj1, obj2, obj3, ... */) {
+	  var result = {};
+	  function assignValue(val, key) {
+	    if (typeof result[key] === 'object' && typeof val === 'object') {
+	      result[key] = merge(result[key], val);
+	    } else {
+	      result[key] = val;
+	    }
+	  }
+	
+	  for (var i = 0, l = arguments.length; i < l; i++) {
+	    forEach(arguments[i], assignValue);
+	  }
+	  return result;
+	}
+	
+	/**
+	 * Extends object a by mutably adding to it the properties of object b.
+	 *
+	 * @param {Object} a The object to be extended
+	 * @param {Object} b The object to copy properties from
+	 * @param {Object} thisArg The object to bind function to
+	 * @return {Object} The resulting value of object a
+	 */
+	function extend(a, b, thisArg) {
+	  forEach(b, function assignValue(val, key) {
+	    if (thisArg && typeof val === 'function') {
+	      a[key] = bind(val, thisArg);
+	    } else {
+	      a[key] = val;
+	    }
+	  });
+	  return a;
+	}
+	
+	module.exports = {
+	  isArray: isArray,
+	  isArrayBuffer: isArrayBuffer,
+	  isFormData: isFormData,
+	  isArrayBufferView: isArrayBufferView,
+	  isString: isString,
+	  isNumber: isNumber,
+	  isObject: isObject,
+	  isUndefined: isUndefined,
+	  isDate: isDate,
+	  isFile: isFile,
+	  isBlob: isBlob,
+	  isFunction: isFunction,
+	  isStream: isStream,
+	  isURLSearchParams: isURLSearchParams,
+	  isStandardBrowserEnv: isStandardBrowserEnv,
+	  forEach: forEach,
+	  merge: merge,
+	  extend: extend,
+	  trim: trim
+	};
 
 
 /***/ },
 /* 189 */
 /***/ function(module, exports) {
 
-	/*
-	 * Copyright 2014-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	/**
-	 * Add common helper methods to a client impl
-	 *
-	 * @param {function} impl the client implementation
-	 * @param {Client} [target] target of this client, used when wrapping other clients
-	 * @returns {Client} the client impl with additional methods
-	 */
-	module.exports = function client(impl, target) {
-	
-		if (target) {
-	
-			/**
-			 * @returns {Client} the target client
-			 */
-			impl.skip = function skip() {
-				return target;
-			};
-	
-		}
-	
-		/**
-		 * Allow a client to easily be wrapped by an interceptor
-		 *
-		 * @param {Interceptor} interceptor the interceptor to wrap this client with
-		 * @param [config] configuration for the interceptor
-		 * @returns {Client} the newly wrapped client
-		 */
-		impl.wrap = function wrap(interceptor, config) {
-			return interceptor(impl, config);
-		};
-	
-		/**
-		 * @deprecated
-		 */
-		impl.chain = function chain() {
-			if (typeof console !== 'undefined') {
-				console.log('rest.js: client.chain() is deprecated, use client.wrap() instead');
-			}
-	
-			return impl.wrap.apply(this, arguments);
-		};
-	
-		return impl;
-	
+	module.exports = function bind(fn, thisArg) {
+	  return function wrap() {
+	    var args = new Array(arguments.length);
+	    for (var i = 0; i < args.length; i++) {
+	      args[i] = arguments[i];
+	    }
+	    return fn.apply(thisArg, args);
+	  };
 	};
 
 
@@ -22176,777 +22390,545 @@
 /* 190 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2012-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	var normalizeHeaderName, responsePromise, client, headerSplitRE;
+	var defaults = __webpack_require__(191);
+	var utils = __webpack_require__(188);
+	var InterceptorManager = __webpack_require__(202);
+	var dispatchRequest = __webpack_require__(203);
+	var isAbsoluteURL = __webpack_require__(206);
+	var combineURLs = __webpack_require__(207);
 	
-	normalizeHeaderName = __webpack_require__(191);
-	responsePromise = __webpack_require__(192);
-	client = __webpack_require__(189);
-	
-	// according to the spec, the line break is '\r\n', but doesn't hold true in practice
-	headerSplitRE = /[\r|\n]+/;
-	
-	function parseHeaders(raw) {
-		// Note: Set-Cookie will be removed by the browser
-		var headers = {};
-	
-		if (!raw) { return headers; }
-	
-		raw.trim().split(headerSplitRE).forEach(function (header) {
-			var boundary, name, value;
-			boundary = header.indexOf(':');
-			name = normalizeHeaderName(header.substring(0, boundary).trim());
-			value = header.substring(boundary + 1).trim();
-			if (headers[name]) {
-				if (Array.isArray(headers[name])) {
-					// add to an existing array
-					headers[name].push(value);
-				}
-				else {
-					// convert single value to array
-					headers[name] = [headers[name], value];
-				}
-			}
-			else {
-				// new, single value
-				headers[name] = value;
-			}
-		});
-	
-		return headers;
+	/**
+	 * Create a new instance of Axios
+	 *
+	 * @param {Object} instanceConfig The default config for the instance
+	 */
+	function Axios(instanceConfig) {
+	  this.defaults = instanceConfig;
+	  this.interceptors = {
+	    request: new InterceptorManager(),
+	    response: new InterceptorManager()
+	  };
 	}
 	
-	function safeMixin(target, source) {
-		Object.keys(source || {}).forEach(function (prop) {
-			// make sure the property already exists as
-			// IE 6 will blow up if we add a new prop
-			if (source.hasOwnProperty(prop) && prop in target) {
-				try {
-					target[prop] = source[prop];
-				}
-				catch (e) {
-					// ignore, expected for some properties at some points in the request lifecycle
-				}
-			}
-		});
+	/**
+	 * Dispatch a request
+	 *
+	 * @param {Object} config The config specific for this request (merged with this.defaults)
+	 */
+	Axios.prototype.request = function request(config) {
+	  /*eslint no-param-reassign:0*/
+	  // Allow for axios('example/url'[, config]) a la fetch API
+	  if (typeof config === 'string') {
+	    config = utils.merge({
+	      url: arguments[0]
+	    }, arguments[1]);
+	  }
 	
-		return target;
-	}
+	  config = utils.merge(defaults, this.defaults, { method: 'get' }, config);
 	
-	module.exports = client(function xhr(request) {
-		return responsePromise.promise(function (resolve, reject) {
-			/*jshint maxcomplexity:20 */
+	  // Support baseURL config
+	  if (config.baseURL && !isAbsoluteURL(config.url)) {
+	    config.url = combineURLs(config.baseURL, config.url);
+	  }
 	
-			var client, method, url, headers, entity, headerName, response, XHR;
+	  // Hook up interceptors middleware
+	  var chain = [dispatchRequest, undefined];
+	  var promise = Promise.resolve(config);
 	
-			request = typeof request === 'string' ? { path: request } : request || {};
-			response = { request: request };
+	  this.interceptors.request.forEach(function unshiftRequestInterceptors(interceptor) {
+	    chain.unshift(interceptor.fulfilled, interceptor.rejected);
+	  });
 	
-			if (request.canceled) {
-				response.error = 'precanceled';
-				reject(response);
-				return;
-			}
+	  this.interceptors.response.forEach(function pushResponseInterceptors(interceptor) {
+	    chain.push(interceptor.fulfilled, interceptor.rejected);
+	  });
 	
-			XHR = request.engine || XMLHttpRequest;
-			if (!XHR) {
-				reject({ request: request, error: 'xhr-not-available' });
-				return;
-			}
+	  while (chain.length) {
+	    promise = promise.then(chain.shift(), chain.shift());
+	  }
 	
-			entity = request.entity;
-			request.method = request.method || (entity ? 'POST' : 'GET');
-			method = request.method;
-			url = response.url = request.path || '';
+	  return promise;
+	};
 	
-			try {
-				client = response.raw = new XHR();
-	
-				// mixin extra request properties before and after opening the request as some properties require being set at different phases of the request
-				safeMixin(client, request.mixin);
-				client.open(method, url, true);
-				safeMixin(client, request.mixin);
-	
-				headers = request.headers;
-				for (headerName in headers) {
-					/*jshint forin:false */
-					if (headerName === 'Content-Type' && headers[headerName] === 'multipart/form-data') {
-						// XMLHttpRequest generates its own Content-Type header with the
-						// appropriate multipart boundary when sending multipart/form-data.
-						continue;
-					}
-	
-					client.setRequestHeader(headerName, headers[headerName]);
-				}
-	
-				request.canceled = false;
-				request.cancel = function cancel() {
-					request.canceled = true;
-					client.abort();
-					reject(response);
-				};
-	
-				client.onreadystatechange = function (/* e */) {
-					if (request.canceled) { return; }
-					if (client.readyState === (XHR.DONE || 4)) {
-						response.status = {
-							code: client.status,
-							text: client.statusText
-						};
-						response.headers = parseHeaders(client.getAllResponseHeaders());
-						response.entity = client.responseText;
-	
-						// #125 -- Sometimes IE8-9 uses 1223 instead of 204
-						// http://stackoverflow.com/questions/10046972/msie-returns-status-code-of-1223-for-ajax-request
-						if (response.status.code === 1223) {
-							response.status.code = 204;
-						}
-	
-						if (response.status.code > 0) {
-							// check status code as readystatechange fires before error event
-							resolve(response);
-						}
-						else {
-							// give the error callback a chance to fire before resolving
-							// requests for file:// URLs do not have a status code
-							setTimeout(function () {
-								resolve(response);
-							}, 0);
-						}
-					}
-				};
-	
-				try {
-					client.onerror = function (/* e */) {
-						response.error = 'loaderror';
-						reject(response);
-					};
-				}
-				catch (e) {
-					// IE 6 will not support error handling
-				}
-	
-				client.send(entity);
-			}
-			catch (e) {
-				response.error = 'loaderror';
-				reject(response);
-			}
-	
-		});
+	// Provide aliases for supported request methods
+	utils.forEach(['delete', 'get', 'head'], function forEachMethodNoData(method) {
+	  /*eslint func-names:0*/
+	  Axios.prototype[method] = function(url, config) {
+	    return this.request(utils.merge(config || {}, {
+	      method: method,
+	      url: url
+	    }));
+	  };
 	});
+	
+	utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
+	  /*eslint func-names:0*/
+	  Axios.prototype[method] = function(url, data, config) {
+	    return this.request(utils.merge(config || {}, {
+	      method: method,
+	      url: url,
+	      data: data
+	    }));
+	  };
+	});
+	
+	module.exports = Axios;
 
 
 /***/ },
 /* 191 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2012-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
+	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 	
-	'use strict';
+	var utils = __webpack_require__(188);
+	var normalizeHeaderName = __webpack_require__(192);
 	
-	/**
-	 * Normalize HTTP header names using the pseudo camel case.
-	 *
-	 * For example:
-	 *   content-type         -> Content-Type
-	 *   accepts              -> Accepts
-	 *   x-custom-header-name -> X-Custom-Header-Name
-	 *
-	 * @param {string} name the raw header name
-	 * @return {string} the normalized header name
-	 */
-	function normalizeHeaderName(name) {
-		return name.toLowerCase()
-			.split('-')
-			.map(function (chunk) { return chunk.charAt(0).toUpperCase() + chunk.slice(1); })
-			.join('-');
+	var PROTECTION_PREFIX = /^\)\]\}',?\n/;
+	var DEFAULT_CONTENT_TYPE = {
+	  'Content-Type': 'application/x-www-form-urlencoded'
+	};
+	
+	function setContentTypeIfUnset(headers, value) {
+	  if (!utils.isUndefined(headers) && utils.isUndefined(headers['Content-Type'])) {
+	    headers['Content-Type'] = value;
+	  }
 	}
 	
-	module.exports = normalizeHeaderName;
-
+	function getDefaultAdapter() {
+	  var adapter;
+	  if (typeof XMLHttpRequest !== 'undefined') {
+	    // For browsers use XHR adapter
+	    adapter = __webpack_require__(193);
+	  } else if (typeof process !== 'undefined') {
+	    // For node use HTTP adapter
+	    adapter = __webpack_require__(193);
+	  }
+	  return adapter;
+	}
+	
+	var defaults = {
+	  adapter: getDefaultAdapter(),
+	
+	  transformRequest: [function transformRequest(data, headers) {
+	    normalizeHeaderName(headers, 'Content-Type');
+	    if (utils.isFormData(data) ||
+	      utils.isArrayBuffer(data) ||
+	      utils.isStream(data) ||
+	      utils.isFile(data) ||
+	      utils.isBlob(data)
+	    ) {
+	      return data;
+	    }
+	    if (utils.isArrayBufferView(data)) {
+	      return data.buffer;
+	    }
+	    if (utils.isURLSearchParams(data)) {
+	      setContentTypeIfUnset(headers, 'application/x-www-form-urlencoded;charset=utf-8');
+	      return data.toString();
+	    }
+	    if (utils.isObject(data)) {
+	      setContentTypeIfUnset(headers, 'application/json;charset=utf-8');
+	      return JSON.stringify(data);
+	    }
+	    return data;
+	  }],
+	
+	  transformResponse: [function transformResponse(data) {
+	    /*eslint no-param-reassign:0*/
+	    if (typeof data === 'string') {
+	      data = data.replace(PROTECTION_PREFIX, '');
+	      try {
+	        data = JSON.parse(data);
+	      } catch (e) { /* Ignore */ }
+	    }
+	    return data;
+	  }],
+	
+	  timeout: 0,
+	
+	  xsrfCookieName: 'XSRF-TOKEN',
+	  xsrfHeaderName: 'X-XSRF-TOKEN',
+	
+	  maxContentLength: -1,
+	
+	  validateStatus: function validateStatus(status) {
+	    return status >= 200 && status < 300;
+	  }
+	};
+	
+	defaults.headers = {
+	  common: {
+	    'Accept': 'application/json, text/plain, */*'
+	  }
+	};
+	
+	utils.forEach(['delete', 'get', 'head'], function forEachMehtodNoData(method) {
+	  defaults.headers[method] = {};
+	});
+	
+	utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
+	  defaults.headers[method] = utils.merge(DEFAULT_CONTENT_TYPE);
+	});
+	
+	module.exports = defaults;
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
 /* 192 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2014-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	/*jshint latedef: nofunc */
+	var utils = __webpack_require__(188);
 	
-	var normalizeHeaderName = __webpack_require__(191);
-	
-	function property(promise, name) {
-		return promise.then(
-			function (value) {
-				return value && value[name];
-			},
-			function (value) {
-				return Promise.reject(value && value[name]);
-			}
-		);
-	}
-	
-	/**
-	 * Obtain the response entity
-	 *
-	 * @returns {Promise} for the response entity
-	 */
-	function entity() {
-		/*jshint validthis:true */
-		return property(this, 'entity');
-	}
-	
-	/**
-	 * Obtain the response status
-	 *
-	 * @returns {Promise} for the response status
-	 */
-	function status() {
-		/*jshint validthis:true */
-		return property(property(this, 'status'), 'code');
-	}
-	
-	/**
-	 * Obtain the response headers map
-	 *
-	 * @returns {Promise} for the response headers map
-	 */
-	function headers() {
-		/*jshint validthis:true */
-		return property(this, 'headers');
-	}
-	
-	/**
-	 * Obtain a specific response header
-	 *
-	 * @param {String} headerName the header to retrieve
-	 * @returns {Promise} for the response header's value
-	 */
-	function header(headerName) {
-		/*jshint validthis:true */
-		headerName = normalizeHeaderName(headerName);
-		return property(this.headers(), headerName);
-	}
-	
-	/**
-	 * Follow a related resource
-	 *
-	 * The relationship to follow may be define as a plain string, an object
-	 * with the rel and params, or an array containing one or more entries
-	 * with the previous forms.
-	 *
-	 * Examples:
-	 *   response.follow('next')
-	 *
-	 *   response.follow({ rel: 'next', params: { pageSize: 100 } })
-	 *
-	 *   response.follow([
-	 *       { rel: 'items', params: { projection: 'noImages' } },
-	 *       'search',
-	 *       { rel: 'findByGalleryIsNull', params: { projection: 'noImages' } },
-	 *       'items'
-	 *   ])
-	 *
-	 * @param {String|Object|Array} rels one, or more, relationships to follow
-	 * @returns ResponsePromise<Response> related resource
-	 */
-	function follow(rels) {
-		/*jshint validthis:true */
-		rels = [].concat(rels);
-	
-		return make(rels.reduce(function (response, rel) {
-			return response.then(function (response) {
-				if (typeof rel === 'string') {
-					rel = { rel: rel };
-				}
-				if (typeof response.entity.clientFor !== 'function') {
-					throw new Error('Hypermedia response expected');
-				}
-				var client = response.entity.clientFor(rel.rel);
-				return client({ params: rel.params });
-			});
-		}, this));
-	}
-	
-	/**
-	 * Wrap a Promise as an ResponsePromise
-	 *
-	 * @param {Promise<Response>} promise the promise for an HTTP Response
-	 * @returns {ResponsePromise<Response>} wrapped promise for Response with additional helper methods
-	 */
-	function make(promise) {
-		promise.status = status;
-		promise.headers = headers;
-		promise.header = header;
-		promise.entity = entity;
-		promise.follow = follow;
-		return promise;
-	}
-	
-	function responsePromise(obj, callback, errback) {
-		return make(Promise.resolve(obj).then(callback, errback));
-	}
-	
-	responsePromise.make = make;
-	responsePromise.reject = function (val) {
-		return make(Promise.reject(val));
+	module.exports = function normalizeHeaderName(headers, normalizedName) {
+	  utils.forEach(headers, function processHeader(value, name) {
+	    if (name !== normalizedName && name.toUpperCase() === normalizedName.toUpperCase()) {
+	      headers[normalizedName] = value;
+	      delete headers[name];
+	    }
+	  });
 	};
-	responsePromise.promise = function (func) {
-		return make(new Promise(func));
-	};
-	
-	module.exports = responsePromise;
 
 
 /***/ },
 /* 193 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2013-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
+	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 	
-	'use strict';
+	var utils = __webpack_require__(188);
+	var settle = __webpack_require__(194);
+	var buildURL = __webpack_require__(197);
+	var parseHeaders = __webpack_require__(198);
+	var isURLSameOrigin = __webpack_require__(199);
+	var createError = __webpack_require__(195);
+	var btoa = (typeof window !== 'undefined' && window.btoa && window.btoa.bind(window)) || __webpack_require__(200);
 	
-	var interceptor, mixinUtil, defaulter;
+	module.exports = function xhrAdapter(config) {
+	  return new Promise(function dispatchXhrRequest(resolve, reject) {
+	    var requestData = config.data;
+	    var requestHeaders = config.headers;
 	
-	interceptor = __webpack_require__(194);
-	mixinUtil = __webpack_require__(195);
+	    if (utils.isFormData(requestData)) {
+	      delete requestHeaders['Content-Type']; // Let the browser set it
+	    }
 	
-	defaulter = (function () {
+	    var request = new XMLHttpRequest();
+	    var loadEvent = 'onreadystatechange';
+	    var xDomain = false;
 	
-		function mixin(prop, target, defaults) {
-			if (prop in target || prop in defaults) {
-				target[prop] = mixinUtil({}, defaults[prop], target[prop]);
-			}
-		}
+	    // For IE 8/9 CORS support
+	    // Only supports POST and GET calls and doesn't returns the response headers.
+	    // DON'T do this for testing b/c XMLHttpRequest is mocked, not XDomainRequest.
+	    if (process.env.NODE_ENV !== 'test' &&
+	        typeof window !== 'undefined' &&
+	        window.XDomainRequest && !('withCredentials' in request) &&
+	        !isURLSameOrigin(config.url)) {
+	      request = new window.XDomainRequest();
+	      loadEvent = 'onload';
+	      xDomain = true;
+	      request.onprogress = function handleProgress() {};
+	      request.ontimeout = function handleTimeout() {};
+	    }
 	
-		function copy(prop, target, defaults) {
-			if (prop in defaults && !(prop in target)) {
-				target[prop] = defaults[prop];
-			}
-		}
+	    // HTTP basic authentication
+	    if (config.auth) {
+	      var username = config.auth.username || '';
+	      var password = config.auth.password || '';
+	      requestHeaders.Authorization = 'Basic ' + btoa(username + ':' + password);
+	    }
 	
-		var mappings = {
-			method: copy,
-			path: copy,
-			params: mixin,
-			headers: mixin,
-			entity: copy,
-			mixin: mixin
-		};
+	    request.open(config.method.toUpperCase(), buildURL(config.url, config.params, config.paramsSerializer), true);
 	
-		return function (target, defaults) {
-			for (var prop in mappings) {
-				/*jshint forin: false */
-				mappings[prop](prop, target, defaults);
-			}
-			return target;
-		};
+	    // Set the request timeout in MS
+	    request.timeout = config.timeout;
 	
-	}());
+	    // Listen for ready state
+	    request[loadEvent] = function handleLoad() {
+	      if (!request || (request.readyState !== 4 && !xDomain)) {
+	        return;
+	      }
 	
-	/**
-	 * Provide default values for a request. These values will be applied to the
-	 * request if the request object does not already contain an explicit value.
-	 *
-	 * For 'params', 'headers', and 'mixin', individual values are mixed in with the
-	 * request's values. The result is a new object representiing the combined
-	 * request and config values. Neither input object is mutated.
-	 *
-	 * @param {Client} [client] client to wrap
-	 * @param {string} [config.method] the default method
-	 * @param {string} [config.path] the default path
-	 * @param {Object} [config.params] the default params, mixed with the request's existing params
-	 * @param {Object} [config.headers] the default headers, mixed with the request's existing headers
-	 * @param {Object} [config.mixin] the default "mixins" (http/https options), mixed with the request's existing "mixins"
-	 *
-	 * @returns {Client}
-	 */
-	module.exports = interceptor({
-		request: function handleRequest(request, config) {
-			return defaulter(request, config);
-		}
-	});
-
+	      // The request errored out and we didn't get a response, this will be
+	      // handled by onerror instead
+	      // With one exception: request that using file: protocol, most browsers
+	      // will return status as 0 even though it's a successful request
+	      if (request.status === 0 && !(request.responseURL && request.responseURL.indexOf('file:') === 0)) {
+	        return;
+	      }
+	
+	      // Prepare the response
+	      var responseHeaders = 'getAllResponseHeaders' in request ? parseHeaders(request.getAllResponseHeaders()) : null;
+	      var responseData = !config.responseType || config.responseType === 'text' ? request.responseText : request.response;
+	      var response = {
+	        data: responseData,
+	        // IE sends 1223 instead of 204 (https://github.com/mzabriskie/axios/issues/201)
+	        status: request.status === 1223 ? 204 : request.status,
+	        statusText: request.status === 1223 ? 'No Content' : request.statusText,
+	        headers: responseHeaders,
+	        config: config,
+	        request: request
+	      };
+	
+	      settle(resolve, reject, response);
+	
+	      // Clean up request
+	      request = null;
+	    };
+	
+	    // Handle low level network errors
+	    request.onerror = function handleError() {
+	      // Real errors are hidden from us by the browser
+	      // onerror should only fire if it's a network error
+	      reject(createError('Network Error', config));
+	
+	      // Clean up request
+	      request = null;
+	    };
+	
+	    // Handle timeout
+	    request.ontimeout = function handleTimeout() {
+	      reject(createError('timeout of ' + config.timeout + 'ms exceeded', config, 'ECONNABORTED'));
+	
+	      // Clean up request
+	      request = null;
+	    };
+	
+	    // Add xsrf header
+	    // This is only done if running in a standard browser environment.
+	    // Specifically not if we're in a web worker, or react-native.
+	    if (utils.isStandardBrowserEnv()) {
+	      var cookies = __webpack_require__(201);
+	
+	      // Add xsrf header
+	      var xsrfValue = (config.withCredentials || isURLSameOrigin(config.url)) && config.xsrfCookieName ?
+	          cookies.read(config.xsrfCookieName) :
+	          undefined;
+	
+	      if (xsrfValue) {
+	        requestHeaders[config.xsrfHeaderName] = xsrfValue;
+	      }
+	    }
+	
+	    // Add headers to the request
+	    if ('setRequestHeader' in request) {
+	      utils.forEach(requestHeaders, function setRequestHeader(val, key) {
+	        if (typeof requestData === 'undefined' && key.toLowerCase() === 'content-type') {
+	          // Remove Content-Type if data is undefined
+	          delete requestHeaders[key];
+	        } else {
+	          // Otherwise add header to the request
+	          request.setRequestHeader(key, val);
+	        }
+	      });
+	    }
+	
+	    // Add withCredentials to request if needed
+	    if (config.withCredentials) {
+	      request.withCredentials = true;
+	    }
+	
+	    // Add responseType to request if needed
+	    if (config.responseType) {
+	      try {
+	        request.responseType = config.responseType;
+	      } catch (e) {
+	        if (request.responseType !== 'json') {
+	          throw e;
+	        }
+	      }
+	    }
+	
+	    // Handle progress if needed
+	    if (typeof config.onDownloadProgress === 'function') {
+	      request.addEventListener('progress', config.onDownloadProgress);
+	    }
+	
+	    // Not all browsers support upload events
+	    if (typeof config.onUploadProgress === 'function' && request.upload) {
+	      request.upload.addEventListener('progress', config.onUploadProgress);
+	    }
+	
+	    if (config.cancelToken) {
+	      // Handle cancellation
+	      config.cancelToken.promise.then(function onCanceled(cancel) {
+	        if (!request) {
+	          return;
+	        }
+	
+	        request.abort();
+	        reject(cancel);
+	        // Clean up request
+	        request = null;
+	      });
+	    }
+	
+	    if (requestData === undefined) {
+	      requestData = null;
+	    }
+	
+	    // Send the request
+	    request.send(requestData);
+	  });
+	};
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
 /* 194 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2012-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	var defaultClient, mixin, responsePromise, client;
-	
-	defaultClient = __webpack_require__(188);
-	mixin = __webpack_require__(195);
-	responsePromise = __webpack_require__(192);
-	client = __webpack_require__(189);
+	var createError = __webpack_require__(195);
 	
 	/**
-	 * Interceptors have the ability to intercept the request and/org response
-	 * objects.  They may augment, prune, transform or replace the
-	 * request/response as needed.  Clients may be composed by wrapping
-	 * together multiple interceptors.
+	 * Resolve or reject a Promise based on response status.
 	 *
-	 * Configured interceptors are functional in nature.  Wrapping a client in
-	 * an interceptor will not affect the client, merely the data that flows in
-	 * and out of that client.  A common configuration can be created once and
-	 * shared; specialization can be created by further wrapping that client
-	 * with custom interceptors.
-	 *
-	 * @param {Client} [target] client to wrap
-	 * @param {Object} [config] configuration for the interceptor, properties will be specific to the interceptor implementation
-	 * @returns {Client} A client wrapped with the interceptor
-	 *
-	 * @class Interceptor
+	 * @param {Function} resolve A function that resolves the promise.
+	 * @param {Function} reject A function that rejects the promise.
+	 * @param {object} response The response.
 	 */
-	
-	function defaultInitHandler(config) {
-		return config;
-	}
-	
-	function defaultRequestHandler(request /*, config, meta */) {
-		return request;
-	}
-	
-	function defaultResponseHandler(response /*, config, meta */) {
-		return response;
-	}
-	
-	/**
-	 * Alternate return type for the request handler that allows for more complex interactions.
-	 *
-	 * @param properties.request the traditional request return object
-	 * @param {Promise} [properties.abort] promise that resolves if/when the request is aborted
-	 * @param {Client} [properties.client] override the defined client with an alternate client
-	 * @param [properties.response] response for the request, short circuit the request
-	 */
-	function ComplexRequest(properties) {
-		if (!(this instanceof ComplexRequest)) {
-			// in case users forget the 'new' don't mix into the interceptor
-			return new ComplexRequest(properties);
-		}
-		mixin(this, properties);
-	}
-	
-	/**
-	 * Create a new interceptor for the provided handlers.
-	 *
-	 * @param {Function} [handlers.init] one time intialization, must return the config object
-	 * @param {Function} [handlers.request] request handler
-	 * @param {Function} [handlers.response] response handler regardless of error state
-	 * @param {Function} [handlers.success] response handler when the request is not in error
-	 * @param {Function} [handlers.error] response handler when the request is in error, may be used to 'unreject' an error state
-	 * @param {Function} [handlers.client] the client to use if otherwise not specified, defaults to platform default client
-	 *
-	 * @returns {Interceptor}
-	 */
-	function interceptor(handlers) {
-	
-		var initHandler, requestHandler, successResponseHandler, errorResponseHandler;
-	
-		handlers = handlers || {};
-	
-		initHandler            = handlers.init    || defaultInitHandler;
-		requestHandler         = handlers.request || defaultRequestHandler;
-		successResponseHandler = handlers.success || handlers.response || defaultResponseHandler;
-		errorResponseHandler   = handlers.error   || function () {
-			// Propagate the rejection, with the result of the handler
-			return Promise.resolve((handlers.response || defaultResponseHandler).apply(this, arguments))
-				.then(Promise.reject.bind(Promise));
-		};
-	
-		return function (target, config) {
-	
-			if (typeof target === 'object') {
-				config = target;
-			}
-			if (typeof target !== 'function') {
-				target = handlers.client || defaultClient;
-			}
-	
-			config = initHandler(config || {});
-	
-			function interceptedClient(request) {
-				var context, meta;
-				context = {};
-				meta = { 'arguments': Array.prototype.slice.call(arguments), client: interceptedClient };
-				request = typeof request === 'string' ? { path: request } : request || {};
-				request.originator = request.originator || interceptedClient;
-				return responsePromise(
-					requestHandler.call(context, request, config, meta),
-					function (request) {
-						var response, abort, next;
-						next = target;
-						if (request instanceof ComplexRequest) {
-							// unpack request
-							abort = request.abort;
-							next = request.client || next;
-							response = request.response;
-							// normalize request, must be last
-							request = request.request;
-						}
-						response = response || Promise.resolve(request).then(function (request) {
-							return Promise.resolve(next(request)).then(
-								function (response) {
-									return successResponseHandler.call(context, response, config, meta);
-								},
-								function (response) {
-									return errorResponseHandler.call(context, response, config, meta);
-								}
-							);
-						});
-						return abort ? Promise.race([response, abort]) : response;
-					},
-					function (error) {
-						return Promise.reject({ request: request, error: error });
-					}
-				);
-			}
-	
-			return client(interceptedClient, target);
-		};
-	}
-	
-	interceptor.ComplexRequest = ComplexRequest;
-	
-	module.exports = interceptor;
+	module.exports = function settle(resolve, reject, response) {
+	  var validateStatus = response.config.validateStatus;
+	  // Note: status is not exposed by XDomainRequest
+	  if (!response.status || !validateStatus || validateStatus(response.status)) {
+	    resolve(response);
+	  } else {
+	    reject(createError(
+	      'Request failed with status code ' + response.status,
+	      response.config,
+	      null,
+	      response
+	    ));
+	  }
+	};
 
 
 /***/ },
 /* 195 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2012-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	var empty = {};
+	var enhanceError = __webpack_require__(196);
 	
 	/**
-	 * Mix the properties from the source object into the destination object.
-	 * When the same property occurs in more then one object, the right most
-	 * value wins.
+	 * Create an Error with the specified message, config, error code, and response.
 	 *
-	 * @param {Object} dest the object to copy properties to
-	 * @param {Object} sources the objects to copy properties from.  May be 1 to N arguments, but not an Array.
-	 * @return {Object} the destination object
+	 * @param {string} message The error message.
+	 * @param {Object} config The config.
+	 * @param {string} [code] The error code (for example, 'ECONNABORTED').
+	 @ @param {Object} [response] The response.
+	 * @returns {Error} The created error.
 	 */
-	function mixin(dest /*, sources... */) {
-		var i, l, source, name;
-	
-		if (!dest) { dest = {}; }
-		for (i = 1, l = arguments.length; i < l; i += 1) {
-			source = arguments[i];
-			for (name in source) {
-				if (!(name in dest) || (dest[name] !== source[name] && (!(name in empty) || empty[name] !== source[name]))) {
-					dest[name] = source[name];
-				}
-			}
-		}
-	
-		return dest; // Object
-	}
-	
-	module.exports = mixin;
+	module.exports = function createError(message, config, code, response) {
+	  var error = new Error(message);
+	  return enhanceError(error, config, code, response);
+	};
 
 
 /***/ },
 /* 196 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ function(module, exports) {
 
-	/*
-	 * Copyright 2012-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	var interceptor, mime, registry, noopConverter, missingConverter, attempt;
-	
-	interceptor = __webpack_require__(194);
-	mime = __webpack_require__(197);
-	registry = __webpack_require__(198);
-	attempt = __webpack_require__(208);
-	
-	noopConverter = {
-		read: function (obj) { return obj; },
-		write: function (obj) { return obj; }
-	};
-	
-	missingConverter = {
-		read: function () { throw 'No read method found on converter'; },
-		write: function () { throw 'No write method found on converter'; }
-	};
-	
 	/**
-	 * MIME type support for request and response entities.  Entities are
-	 * (de)serialized using the converter for the MIME type.
+	 * Update an Error with the specified config, error code, and response.
 	 *
-	 * Request entities are converted using the desired converter and the
-	 * 'Accept' request header prefers this MIME.
-	 *
-	 * Response entities are converted based on the Content-Type response header.
-	 *
-	 * @param {Client} [client] client to wrap
-	 * @param {string} [config.mime='text/plain'] MIME type to encode the request
-	 *   entity
-	 * @param {string} [config.accept] Accept header for the request
-	 * @param {Client} [config.client=<request.originator>] client passed to the
-	 *   converter, defaults to the client originating the request
-	 * @param {Registry} [config.registry] MIME registry, defaults to the root
-	 *   registry
-	 * @param {boolean} [config.permissive] Allow an unkown request MIME type
-	 *
-	 * @returns {Client}
+	 * @param {Error} error The error to update.
+	 * @param {Object} config The config.
+	 * @param {string} [code] The error code (for example, 'ECONNABORTED').
+	 @ @param {Object} [response] The response.
+	 * @returns {Error} The error.
 	 */
-	module.exports = interceptor({
-		init: function (config) {
-			config.registry = config.registry || registry;
-			return config;
-		},
-		request: function (request, config) {
-			var type, headers;
-	
-			headers = request.headers || (request.headers = {});
-			type = mime.parse(headers['Content-Type'] || config.mime || 'text/plain');
-			headers.Accept = headers.Accept || config.accept || type.raw + ', application/json;q=0.8, text/plain;q=0.5, */*;q=0.2';
-	
-			if (!('entity' in request)) {
-				return request;
-			}
-	
-			headers['Content-Type'] = type.raw;
-	
-			return config.registry.lookup(type)['catch'](function () {
-				// failed to resolve converter
-				if (config.permissive) {
-					return noopConverter;
-				}
-				throw 'mime-unknown';
-			}).then(function (converter) {
-				var client = config.client || request.originator,
-					write = converter.write || missingConverter.write;
-	
-				return attempt(write.bind(void 0, request.entity, { client: client, request: request, mime: type, registry: config.registry }))
-					['catch'](function() {
-						throw 'mime-serialization';
-					})
-					.then(function(entity) {
-						request.entity = entity;
-						return request;
-					});
-			});
-		},
-		response: function (response, config) {
-			if (!(response.headers && response.headers['Content-Type'] && response.entity)) {
-				return response;
-			}
-	
-			var type = mime.parse(response.headers['Content-Type']);
-	
-			return config.registry.lookup(type)['catch'](function () { return noopConverter; }).then(function (converter) {
-				var client = config.client || response.request && response.request.originator,
-					read = converter.read || missingConverter.read;
-	
-				return attempt(read.bind(void 0, response.entity, { client: client, response: response, mime: type, registry: config.registry }))
-					['catch'](function (e) {
-						response.error = 'mime-deserialization';
-						response.cause = e;
-						throw response;
-					})
-					.then(function (entity) {
-						response.entity = entity;
-						return response;
-					});
-			});
-		}
-	});
+	module.exports = function enhanceError(error, config, code, response) {
+	  error.config = config;
+	  if (code) {
+	    error.code = code;
+	  }
+	  error.response = response;
+	  return error;
+	};
 
 
 /***/ },
 /* 197 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-	/*
-	* Copyright 2014-2016 the original author or authors
-	* @license MIT, see LICENSE.txt for details
-	*
-	* @author Scott Andrews
-	*/
-	
 	'use strict';
 	
-	/**
-	 * Parse a MIME type into it's constituent parts
-	 *
-	 * @param {string} mime MIME type to parse
-	 * @return {{
-	 *   {string} raw the original MIME type
-	 *   {string} type the type and subtype
-	 *   {string} [suffix] mime suffix, including the plus, if any
-	 *   {Object} params key/value pair of attributes
-	 * }}
-	 */
-	function parse(mime) {
-		var params, type;
+	var utils = __webpack_require__(188);
 	
-		params = mime.split(';');
-		type = params[0].trim().split('+');
-	
-		return {
-			raw: mime,
-			type: type[0],
-			suffix: type[1] ? '+' + type[1] : '',
-			params: params.slice(1).reduce(function (params, pair) {
-				pair = pair.split('=');
-				params[pair[0].trim()] = pair[1] ? pair[1].trim() : void 0;
-				return params;
-			}, {})
-		};
+	function encode(val) {
+	  return encodeURIComponent(val).
+	    replace(/%40/gi, '@').
+	    replace(/%3A/gi, ':').
+	    replace(/%24/g, '$').
+	    replace(/%2C/gi, ',').
+	    replace(/%20/g, '+').
+	    replace(/%5B/gi, '[').
+	    replace(/%5D/gi, ']');
 	}
 	
-	module.exports = {
-		parse: parse
+	/**
+	 * Build a URL by appending params to the end
+	 *
+	 * @param {string} url The base of the url (e.g., http://www.google.com)
+	 * @param {object} [params] The params to be appended
+	 * @returns {string} The formatted url
+	 */
+	module.exports = function buildURL(url, params, paramsSerializer) {
+	  /*eslint no-param-reassign:0*/
+	  if (!params) {
+	    return url;
+	  }
+	
+	  var serializedParams;
+	  if (paramsSerializer) {
+	    serializedParams = paramsSerializer(params);
+	  } else if (utils.isURLSearchParams(params)) {
+	    serializedParams = params.toString();
+	  } else {
+	    var parts = [];
+	
+	    utils.forEach(params, function serialize(val, key) {
+	      if (val === null || typeof val === 'undefined') {
+	        return;
+	      }
+	
+	      if (utils.isArray(val)) {
+	        key = key + '[]';
+	      }
+	
+	      if (!utils.isArray(val)) {
+	        val = [val];
+	      }
+	
+	      utils.forEach(val, function parseValue(v) {
+	        if (utils.isDate(v)) {
+	          v = v.toISOString();
+	        } else if (utils.isObject(v)) {
+	          v = JSON.stringify(v);
+	        }
+	        parts.push(encode(key) + '=' + encode(v));
+	      });
+	    });
+	
+	    serializedParams = parts.join('&');
+	  }
+	
+	  if (serializedParams) {
+	    url += (url.indexOf('?') === -1 ? '?' : '&') + serializedParams;
+	  }
+	
+	  return url;
 	};
 
 
@@ -22954,825 +22936,386 @@
 /* 198 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2012-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	var mime, registry;
+	var utils = __webpack_require__(188);
 	
-	mime = __webpack_require__(197);
+	/**
+	 * Parse headers into an object
+	 *
+	 * ```
+	 * Date: Wed, 27 Aug 2014 08:58:49 GMT
+	 * Content-Type: application/json
+	 * Connection: keep-alive
+	 * Transfer-Encoding: chunked
+	 * ```
+	 *
+	 * @param {String} headers Headers needing to be parsed
+	 * @returns {Object} Headers parsed into an object
+	 */
+	module.exports = function parseHeaders(headers) {
+	  var parsed = {};
+	  var key;
+	  var val;
+	  var i;
 	
-	function Registry(mimes) {
+	  if (!headers) { return parsed; }
 	
-		/**
-		 * Lookup the converter for a MIME type
-		 *
-		 * @param {string} type the MIME type
-		 * @return a promise for the converter
-		 */
-		this.lookup = function lookup(type) {
-			var parsed;
+	  utils.forEach(headers.split('\n'), function parser(line) {
+	    i = line.indexOf(':');
+	    key = utils.trim(line.substr(0, i)).toLowerCase();
+	    val = utils.trim(line.substr(i + 1));
 	
-			parsed = typeof type === 'string' ? mime.parse(type) : type;
+	    if (key) {
+	      parsed[key] = parsed[key] ? parsed[key] + ', ' + val : val;
+	    }
+	  });
 	
-			if (mimes[parsed.raw]) {
-				return mimes[parsed.raw];
-			}
-			if (mimes[parsed.type + parsed.suffix]) {
-				return mimes[parsed.type + parsed.suffix];
-			}
-			if (mimes[parsed.type]) {
-				return mimes[parsed.type];
-			}
-			if (mimes[parsed.suffix]) {
-				return mimes[parsed.suffix];
-			}
-	
-			return Promise.reject(new Error('Unable to locate converter for mime "' + parsed.raw + '"'));
-		};
-	
-		/**
-		 * Create a late dispatched proxy to the target converter.
-		 *
-		 * Common when a converter is registered under multiple names and
-		 * should be kept in sync if updated.
-		 *
-		 * @param {string} type mime converter to dispatch to
-		 * @returns converter whose read/write methods target the desired mime converter
-		 */
-		this.delegate = function delegate(type) {
-			return {
-				read: function () {
-					var args = arguments;
-					return this.lookup(type).then(function (converter) {
-						return converter.read.apply(this, args);
-					}.bind(this));
-				}.bind(this),
-				write: function () {
-					var args = arguments;
-					return this.lookup(type).then(function (converter) {
-						return converter.write.apply(this, args);
-					}.bind(this));
-				}.bind(this)
-			};
-		};
-	
-		/**
-		 * Register a custom converter for a MIME type
-		 *
-		 * @param {string} type the MIME type
-		 * @param converter the converter for the MIME type
-		 * @return a promise for the converter
-		 */
-		this.register = function register(type, converter) {
-			mimes[type] = Promise.resolve(converter);
-			return mimes[type];
-		};
-	
-		/**
-		 * Create a child registry whoes registered converters remain local, while
-		 * able to lookup converters from its parent.
-		 *
-		 * @returns child MIME registry
-		 */
-		this.child = function child() {
-			return new Registry(Object.create(mimes));
-		};
-	
-	}
-	
-	registry = new Registry({});
-	
-	// include provided serializers
-	registry.register('application/hal', __webpack_require__(199));
-	registry.register('application/json', __webpack_require__(209));
-	registry.register('application/x-www-form-urlencoded', __webpack_require__(202));
-	registry.register('multipart/form-data', __webpack_require__(210));
-	registry.register('text/plain', __webpack_require__(211));
-	
-	registry.register('+json', registry.delegate('application/json'));
-	
-	module.exports = registry;
+	  return parsed;
+	};
 
 
 /***/ },
 /* 199 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2013-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	var pathPrefix, template, find, lazyPromise, responsePromise;
+	var utils = __webpack_require__(188);
 	
-	pathPrefix = __webpack_require__(200);
-	template = __webpack_require__(203);
-	find = __webpack_require__(206);
-	lazyPromise = __webpack_require__(207);
-	responsePromise = __webpack_require__(192);
+	module.exports = (
+	  utils.isStandardBrowserEnv() ?
 	
-	function defineProperty(obj, name, value) {
-		Object.defineProperty(obj, name, {
-			value: value,
-			configurable: true,
-			enumerable: false,
-			writeable: true
-		});
-	}
+	  // Standard browser envs have full support of the APIs needed to test
+	  // whether the request URL is of the same origin as current location.
+	  (function standardBrowserEnv() {
+	    var msie = /(msie|trident)/i.test(navigator.userAgent);
+	    var urlParsingNode = document.createElement('a');
+	    var originURL;
 	
-	/**
-	 * Hypertext Application Language serializer
-	 *
-	 * Implemented to https://tools.ietf.org/html/draft-kelly-json-hal-06
-	 *
-	 * As the spec is still a draft, this implementation will be updated as the
-	 * spec evolves
-	 *
-	 * Objects are read as HAL indexing links and embedded objects on to the
-	 * resource. Objects are written as plain JSON.
-	 *
-	 * Embedded relationships are indexed onto the resource by the relationship
-	 * as a promise for the related resource.
-	 *
-	 * Links are indexed onto the resource as a lazy promise that will GET the
-	 * resource when a handler is first registered on the promise.
-	 *
-	 * A `requestFor` method is added to the entity to make a request for the
-	 * relationship.
-	 *
-	 * A `clientFor` method is added to the entity to get a full Client for a
-	 * relationship.
-	 *
-	 * The `_links` and `_embedded` properties on the resource are made
-	 * non-enumerable.
-	 */
-	module.exports = {
+	    /**
+	    * Parse a URL to discover it's components
+	    *
+	    * @param {String} url The URL to be parsed
+	    * @returns {Object}
+	    */
+	    function resolveURL(url) {
+	      var href = url;
 	
-		read: function (str, opts) {
-			var client, console;
+	      if (msie) {
+	        // IE needs attribute set twice to normalize properties
+	        urlParsingNode.setAttribute('href', href);
+	        href = urlParsingNode.href;
+	      }
 	
-			opts = opts || {};
-			client = opts.client;
-			console = opts.console || console;
+	      urlParsingNode.setAttribute('href', href);
 	
-			function deprecationWarning(relationship, deprecation) {
-				if (deprecation && console && console.warn || console.log) {
-					(console.warn || console.log).call(console, 'Relationship \'' + relationship + '\' is deprecated, see ' + deprecation);
-				}
-			}
+	      // urlParsingNode provides the UrlUtils interface - http://url.spec.whatwg.org/#urlutils
+	      return {
+	        href: urlParsingNode.href,
+	        protocol: urlParsingNode.protocol ? urlParsingNode.protocol.replace(/:$/, '') : '',
+	        host: urlParsingNode.host,
+	        search: urlParsingNode.search ? urlParsingNode.search.replace(/^\?/, '') : '',
+	        hash: urlParsingNode.hash ? urlParsingNode.hash.replace(/^#/, '') : '',
+	        hostname: urlParsingNode.hostname,
+	        port: urlParsingNode.port,
+	        pathname: (urlParsingNode.pathname.charAt(0) === '/') ?
+	                  urlParsingNode.pathname :
+	                  '/' + urlParsingNode.pathname
+	      };
+	    }
 	
-			return opts.registry.lookup(opts.mime.suffix).then(function (converter) {
-				return converter.read(str, opts);
-			}).then(function (root) {
-				find.findProperties(root, '_embedded', function (embedded, resource, name) {
-					Object.keys(embedded).forEach(function (relationship) {
-						if (relationship in resource) { return; }
-						var related = responsePromise({
-							entity: embedded[relationship]
-						});
-						defineProperty(resource, relationship, related);
-					});
-					defineProperty(resource, name, embedded);
-				});
-				find.findProperties(root, '_links', function (links, resource, name) {
-					Object.keys(links).forEach(function (relationship) {
-						var link = links[relationship];
-						if (relationship in resource) { return; }
-						defineProperty(resource, relationship, responsePromise.make(lazyPromise(function () {
-							if (link.deprecation) { deprecationWarning(relationship, link.deprecation); }
-							if (link.templated === true) {
-								return template(client)({ path: link.href });
-							}
-							return client({ path: link.href });
-						})));
-					});
-					defineProperty(resource, name, links);
-					defineProperty(resource, 'clientFor', function (relationship, clientOverride) {
-						var link = links[relationship];
-						if (!link) {
-							throw new Error('Unknown relationship: ' + relationship);
-						}
-						if (link.deprecation) { deprecationWarning(relationship, link.deprecation); }
-						if (link.templated === true) {
-							return template(
-								clientOverride || client,
-								{ template: link.href }
-							);
-						}
-						return pathPrefix(
-							clientOverride || client,
-							{ prefix: link.href }
-						);
-					});
-					defineProperty(resource, 'requestFor', function (relationship, request, clientOverride) {
-						var client = this.clientFor(relationship, clientOverride);
-						return client(request);
-					});
-				});
+	    originURL = resolveURL(window.location.href);
 	
-				return root;
-			});
+	    /**
+	    * Determine if a URL shares the same origin as the current location
+	    *
+	    * @param {String} requestURL The URL to test
+	    * @returns {boolean} True if URL shares the same origin, otherwise false
+	    */
+	    return function isURLSameOrigin(requestURL) {
+	      var parsed = (utils.isString(requestURL)) ? resolveURL(requestURL) : requestURL;
+	      return (parsed.protocol === originURL.protocol &&
+	            parsed.host === originURL.host);
+	    };
+	  })() :
 	
-		},
-	
-		write: function (obj, opts) {
-			return opts.registry.lookup(opts.mime.suffix).then(function (converter) {
-				return converter.write(obj, opts);
-			});
-		}
-	
-	};
+	  // Non standard browser envs (web workers, react-native) lack needed support.
+	  (function nonStandardBrowserEnv() {
+	    return function isURLSameOrigin() {
+	      return true;
+	    };
+	  })()
+	);
 
 
 /***/ },
 /* 200 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ function(module, exports) {
 
-	/*
-	 * Copyright 2012-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	var interceptor, UrlBuilder;
+	// btoa polyfill for IE<10 courtesy https://github.com/davidchambers/Base64.js
 	
-	interceptor = __webpack_require__(194);
-	UrlBuilder = __webpack_require__(201);
+	var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
 	
-	function startsWith(str, prefix) {
-		return str.indexOf(prefix) === 0;
+	function E() {
+	  this.message = 'String contains an invalid character';
+	}
+	E.prototype = new Error;
+	E.prototype.code = 5;
+	E.prototype.name = 'InvalidCharacterError';
+	
+	function btoa(input) {
+	  var str = String(input);
+	  var output = '';
+	  for (
+	    // initialize result and counter
+	    var block, charCode, idx = 0, map = chars;
+	    // if the next str index does not exist:
+	    //   change the mapping table to "="
+	    //   check if d has no fractional digits
+	    str.charAt(idx | 0) || (map = '=', idx % 1);
+	    // "8 - idx % 1 * 8" generates the sequence 2, 4, 6, 8
+	    output += map.charAt(63 & block >> 8 - idx % 1 * 8)
+	  ) {
+	    charCode = str.charCodeAt(idx += 3 / 4);
+	    if (charCode > 0xFF) {
+	      throw new E();
+	    }
+	    block = block << 8 | charCode;
+	  }
+	  return output;
 	}
 	
-	function endsWith(str, suffix) {
-		return str.lastIndexOf(suffix) + suffix.length === str.length;
-	}
-	
-	/**
-	 * Prefixes the request path with a common value.
-	 *
-	 * @param {Client} [client] client to wrap
-	 * @param {number} [config.prefix] path prefix
-	 *
-	 * @returns {Client}
-	 */
-	module.exports = interceptor({
-		request: function (request, config) {
-			var path;
-	
-			if (config.prefix && !(new UrlBuilder(request.path).isFullyQualified())) {
-				path = config.prefix;
-				if (request.path) {
-					if (!endsWith(path, '/') && !startsWith(request.path, '/')) {
-						// add missing '/' between path sections
-						path += '/';
-					}
-					path += request.path;
-				}
-				request.path = path;
-			}
-	
-			return request;
-		}
-	});
+	module.exports = btoa;
 
 
 /***/ },
 /* 201 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2012-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	var mixin, xWWWFormURLEncoder, origin, urlRE, absoluteUrlRE, fullyQualifiedUrlRE;
+	var utils = __webpack_require__(188);
 	
-	mixin = __webpack_require__(195);
-	xWWWFormURLEncoder = __webpack_require__(202);
+	module.exports = (
+	  utils.isStandardBrowserEnv() ?
 	
-	urlRE = /([a-z][a-z0-9\+\-\.]*:)\/\/([^@]+@)?(([^:\/]+)(:([0-9]+))?)?(\/[^?#]*)?(\?[^#]*)?(#\S*)?/i;
-	absoluteUrlRE = /^([a-z][a-z0-9\-\+\.]*:\/\/|\/)/i;
-	fullyQualifiedUrlRE = /([a-z][a-z0-9\+\-\.]*:)\/\/([^@]+@)?(([^:\/]+)(:([0-9]+))?)?\//i;
+	  // Standard browser envs support document.cookie
+	  (function standardBrowserEnv() {
+	    return {
+	      write: function write(name, value, expires, path, domain, secure) {
+	        var cookie = [];
+	        cookie.push(name + '=' + encodeURIComponent(value));
 	
-	/**
-	 * Apply params to the template to create a URL.
-	 *
-	 * Parameters that are not applied directly to the template, are appended
-	 * to the URL as query string parameters.
-	 *
-	 * @param {string} template the URI template
-	 * @param {Object} params parameters to apply to the template
-	 * @return {string} the resulting URL
-	 */
-	function buildUrl(template, params) {
-		// internal builder to convert template with params.
-		var url, name, queryStringParams, queryString, re;
+	        if (utils.isNumber(expires)) {
+	          cookie.push('expires=' + new Date(expires).toGMTString());
+	        }
 	
-		url = template;
-		queryStringParams = {};
+	        if (utils.isString(path)) {
+	          cookie.push('path=' + path);
+	        }
 	
-		if (params) {
-			for (name in params) {
-				/*jshint forin:false */
-				re = new RegExp('\\{' + name + '\\}');
-				if (re.test(url)) {
-					url = url.replace(re, encodeURIComponent(params[name]), 'g');
-				}
-				else {
-					queryStringParams[name] = params[name];
-				}
-			}
+	        if (utils.isString(domain)) {
+	          cookie.push('domain=' + domain);
+	        }
 	
-			queryString = xWWWFormURLEncoder.write(queryStringParams);
-			if (queryString) {
-				url += url.indexOf('?') === -1 ? '?' : '&';
-				url += queryString;
-			}
-		}
-		return url;
-	}
+	        if (secure === true) {
+	          cookie.push('secure');
+	        }
 	
-	function startsWith(str, test) {
-		return str.indexOf(test) === 0;
-	}
+	        document.cookie = cookie.join('; ');
+	      },
 	
-	/**
-	 * Create a new URL Builder
-	 *
-	 * @param {string|UrlBuilder} template the base template to build from, may be another UrlBuilder
-	 * @param {Object} [params] base parameters
-	 * @constructor
-	 */
-	function UrlBuilder(template, params) {
-		if (!(this instanceof UrlBuilder)) {
-			// invoke as a constructor
-			return new UrlBuilder(template, params);
-		}
+	      read: function read(name) {
+	        var match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
+	        return (match ? decodeURIComponent(match[3]) : null);
+	      },
 	
-		if (template instanceof UrlBuilder) {
-			this._template = template.template;
-			this._params = mixin({}, this._params, params);
-		}
-		else {
-			this._template = (template || '').toString();
-			this._params = params || {};
-		}
-	}
+	      remove: function remove(name) {
+	        this.write(name, '', Date.now() - 86400000);
+	      }
+	    };
+	  })() :
 	
-	UrlBuilder.prototype = {
-	
-		/**
-		 * Create a new UrlBuilder instance that extends the current builder.
-		 * The current builder is unmodified.
-		 *
-		 * @param {string} [template] URL template to append to the current template
-		 * @param {Object} [params] params to combine with current params.  New params override existing params
-		 * @return {UrlBuilder} the new builder
-		 */
-		append: function (template,  params) {
-			// TODO consider query strings and fragments
-			return new UrlBuilder(this._template + template, mixin({}, this._params, params));
-		},
-	
-		/**
-		 * Create a new UrlBuilder with a fully qualified URL based on the
-		 * window's location or base href and the current templates relative URL.
-		 *
-		 * Path variables are preserved.
-		 *
-		 * *Browser only*
-		 *
-		 * @return {UrlBuilder} the fully qualified URL template
-		 */
-		fullyQualify: function () {
-			if (typeof location === 'undefined') { return this; }
-			if (this.isFullyQualified()) { return this; }
-	
-			var template = this._template;
-	
-			if (startsWith(template, '//')) {
-				template = origin.protocol + template;
-			}
-			else if (startsWith(template, '/')) {
-				template = origin.origin + template;
-			}
-			else if (!this.isAbsolute()) {
-				template = origin.origin + origin.pathname.substring(0, origin.pathname.lastIndexOf('/') + 1);
-			}
-	
-			if (template.indexOf('/', 8) === -1) {
-				// default the pathname to '/'
-				template = template + '/';
-			}
-	
-			return new UrlBuilder(template, this._params);
-		},
-	
-		/**
-		 * True if the URL is absolute
-		 *
-		 * @return {boolean}
-		 */
-		isAbsolute: function () {
-			return absoluteUrlRE.test(this.build());
-		},
-	
-		/**
-		 * True if the URL is fully qualified
-		 *
-		 * @return {boolean}
-		 */
-		isFullyQualified: function () {
-			return fullyQualifiedUrlRE.test(this.build());
-		},
-	
-		/**
-		 * True if the URL is cross origin. The protocol, host and port must not be
-		 * the same in order to be cross origin,
-		 *
-		 * @return {boolean}
-		 */
-		isCrossOrigin: function () {
-			if (!origin) {
-				return true;
-			}
-			var url = this.parts();
-			return url.protocol !== origin.protocol ||
-			       url.hostname !== origin.hostname ||
-			       url.port !== origin.port;
-		},
-	
-		/**
-		 * Split a URL into its consituent parts following the naming convention of
-		 * 'window.location'. One difference is that the port will contain the
-		 * protocol default if not specified.
-		 *
-		 * @see https://developer.mozilla.org/en-US/docs/DOM/window.location
-		 *
-		 * @returns {Object} a 'window.location'-like object
-		 */
-		parts: function () {
-			/*jshint maxcomplexity:20 */
-			var url, parts;
-			url = this.fullyQualify().build().match(urlRE);
-			parts = {
-				href: url[0],
-				protocol: url[1],
-				host: url[3] || '',
-				hostname: url[4] || '',
-				port: url[6],
-				pathname: url[7] || '',
-				search: url[8] || '',
-				hash: url[9] || ''
-			};
-			parts.origin = parts.protocol + '//' + parts.host;
-			parts.port = parts.port || (parts.protocol === 'https:' ? '443' : parts.protocol === 'http:' ? '80' : '');
-			return parts;
-		},
-	
-		/**
-		 * Expand the template replacing path variables with parameters
-		 *
-		 * @param {Object} [params] params to combine with current params.  New params override existing params
-		 * @return {string} the expanded URL
-		 */
-		build: function (params) {
-			return buildUrl(this._template, mixin({}, this._params, params));
-		},
-	
-		/**
-		 * @see build
-		 */
-		toString: function () {
-			return this.build();
-		}
-	
-	};
-	
-	origin = typeof location !== 'undefined' ? new UrlBuilder(location.href).parts() : void 0;
-	
-	module.exports = UrlBuilder;
+	  // Non standard browser env (web workers, react-native) lack needed support.
+	  (function nonStandardBrowserEnv() {
+	    return {
+	      write: function write() {},
+	      read: function read() { return null; },
+	      remove: function remove() {}
+	    };
+	  })()
+	);
 
 
 /***/ },
 /* 202 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2012-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	var encodedSpaceRE, urlEncodedSpaceRE;
+	var utils = __webpack_require__(188);
 	
-	encodedSpaceRE = /%20/g;
-	urlEncodedSpaceRE = /\+/g;
-	
-	function urlEncode(str) {
-		str = encodeURIComponent(str);
-		// spec says space should be encoded as '+'
-		return str.replace(encodedSpaceRE, '+');
+	function InterceptorManager() {
+	  this.handlers = [];
 	}
 	
-	function urlDecode(str) {
-		// spec says space should be encoded as '+'
-		str = str.replace(urlEncodedSpaceRE, ' ');
-		return decodeURIComponent(str);
-	}
-	
-	function append(str, name, value) {
-		if (Array.isArray(value)) {
-			value.forEach(function (value) {
-				str = append(str, name, value);
-			});
-		}
-		else {
-			if (str.length > 0) {
-				str += '&';
-			}
-			str += urlEncode(name);
-			if (value !== undefined && value !== null) {
-				str += '=' + urlEncode(value);
-			}
-		}
-		return str;
-	}
-	
-	module.exports = {
-	
-		read: function (str) {
-			var obj = {};
-			str.split('&').forEach(function (entry) {
-				var pair, name, value;
-				pair = entry.split('=');
-				name = urlDecode(pair[0]);
-				if (pair.length === 2) {
-					value = urlDecode(pair[1]);
-				}
-				else {
-					value = null;
-				}
-				if (name in obj) {
-					if (!Array.isArray(obj[name])) {
-						// convert to an array, perserving currnent value
-						obj[name] = [obj[name]];
-					}
-					obj[name].push(value);
-				}
-				else {
-					obj[name] = value;
-				}
-			});
-			return obj;
-		},
-	
-		write: function (obj) {
-			var str = '';
-			Object.keys(obj).forEach(function (name) {
-				str = append(str, name, obj[name]);
-			});
-			return str;
-		}
-	
+	/**
+	 * Add a new interceptor to the stack
+	 *
+	 * @param {Function} fulfilled The function to handle `then` for a `Promise`
+	 * @param {Function} rejected The function to handle `reject` for a `Promise`
+	 *
+	 * @return {Number} An ID used to remove interceptor later
+	 */
+	InterceptorManager.prototype.use = function use(fulfilled, rejected) {
+	  this.handlers.push({
+	    fulfilled: fulfilled,
+	    rejected: rejected
+	  });
+	  return this.handlers.length - 1;
 	};
+	
+	/**
+	 * Remove an interceptor from the stack
+	 *
+	 * @param {Number} id The ID that was returned by `use`
+	 */
+	InterceptorManager.prototype.eject = function eject(id) {
+	  if (this.handlers[id]) {
+	    this.handlers[id] = null;
+	  }
+	};
+	
+	/**
+	 * Iterate over all the registered interceptors
+	 *
+	 * This method is particularly useful for skipping over any
+	 * interceptors that may have become `null` calling `eject`.
+	 *
+	 * @param {Function} fn The function to call for each interceptor
+	 */
+	InterceptorManager.prototype.forEach = function forEach(fn) {
+	  utils.forEach(this.handlers, function forEachHandler(h) {
+	    if (h !== null) {
+	      fn(h);
+	    }
+	  });
+	};
+	
+	module.exports = InterceptorManager;
 
 
 /***/ },
 /* 203 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2015-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	var interceptor, uriTemplate, mixin;
-	
-	interceptor = __webpack_require__(194);
-	uriTemplate = __webpack_require__(204);
-	mixin = __webpack_require__(195);
+	var utils = __webpack_require__(188);
+	var transformData = __webpack_require__(204);
+	var isCancel = __webpack_require__(205);
+	var defaults = __webpack_require__(191);
 	
 	/**
-	 * Applies request params to the path as a URI Template
-	 *
-	 * Params are removed from the request object, as they have been consumed.
-	 *
-	 * @see https://tools.ietf.org/html/rfc6570
-	 *
-	 * @param {Client} [client] client to wrap
-	 * @param {Object} [config.params] default param values
-	 * @param {string} [config.template] default template
-	 *
-	 * @returns {Client}
+	 * Throws a `Cancel` if cancellation has been requested.
 	 */
-	module.exports = interceptor({
-		init: function (config) {
-			config.params = config.params || {};
-			config.template = config.template || '';
-			return config;
-		},
-		request: function (request, config) {
-			var template, params;
+	function throwIfCancellationRequested(config) {
+	  if (config.cancelToken) {
+	    config.cancelToken.throwIfRequested();
+	  }
+	}
 	
-			template = request.path || config.template;
-			params = mixin({}, request.params, config.params);
+	/**
+	 * Dispatch a request to the server using the configured adapter.
+	 *
+	 * @param {object} config The config that is to be used for the request
+	 * @returns {Promise} The Promise to be fulfilled
+	 */
+	module.exports = function dispatchRequest(config) {
+	  throwIfCancellationRequested(config);
 	
-			request.path = uriTemplate.expand(template, params);
-			delete request.params;
+	  // Ensure headers exist
+	  config.headers = config.headers || {};
 	
-			return request;
-		}
-	});
+	  // Transform request data
+	  config.data = transformData(
+	    config.data,
+	    config.headers,
+	    config.transformRequest
+	  );
+	
+	  // Flatten headers
+	  config.headers = utils.merge(
+	    config.headers.common || {},
+	    config.headers[config.method] || {},
+	    config.headers || {}
+	  );
+	
+	  utils.forEach(
+	    ['delete', 'get', 'head', 'post', 'put', 'patch', 'common'],
+	    function cleanHeaderConfig(method) {
+	      delete config.headers[method];
+	    }
+	  );
+	
+	  var adapter = config.adapter || defaults.adapter;
+	
+	  return adapter(config).then(function onAdapterResolution(response) {
+	    throwIfCancellationRequested(config);
+	
+	    // Transform response data
+	    response.data = transformData(
+	      response.data,
+	      response.headers,
+	      config.transformResponse
+	    );
+	
+	    return response;
+	  }, function onAdapterRejection(reason) {
+	    if (!isCancel(reason)) {
+	      throwIfCancellationRequested(config);
+	
+	      // Transform response data
+	      if (reason && reason.response) {
+	        reason.response.data = transformData(
+	          reason.response.data,
+	          reason.response.headers,
+	          config.transformResponse
+	        );
+	      }
+	    }
+	
+	    return Promise.reject(reason);
+	  });
+	};
 
 
 /***/ },
 /* 204 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2015-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	var uriEncoder, operations, prefixRE;
+	var utils = __webpack_require__(188);
 	
-	uriEncoder = __webpack_require__(205);
+	/**
+	 * Transform the data for a request or a response
+	 *
+	 * @param {Object|String} data The data to be transformed
+	 * @param {Array} headers The headers for the request or response
+	 * @param {Array|Function} fns A single function or Array of functions
+	 * @returns {*} The resulting transformed data
+	 */
+	module.exports = function transformData(data, headers, fns) {
+	  /*eslint no-param-reassign:0*/
+	  utils.forEach(fns, function transform(fn) {
+	    data = fn(data, headers);
+	  });
 	
-	prefixRE = /^([^:]*):([0-9]+)$/;
-	operations = {
-		'':  { first: '',  separator: ',', named: false, empty: '',  encoder: uriEncoder.encode },
-		'+': { first: '',  separator: ',', named: false, empty: '',  encoder: uriEncoder.encodeURL },
-		'#': { first: '#', separator: ',', named: false, empty: '',  encoder: uriEncoder.encodeURL },
-		'.': { first: '.', separator: '.', named: false, empty: '',  encoder: uriEncoder.encode },
-		'/': { first: '/', separator: '/', named: false, empty: '',  encoder: uriEncoder.encode },
-		';': { first: ';', separator: ';', named: true,  empty: '',  encoder: uriEncoder.encode },
-		'?': { first: '?', separator: '&', named: true,  empty: '=', encoder: uriEncoder.encode },
-		'&': { first: '&', separator: '&', named: true,  empty: '=', encoder: uriEncoder.encode },
-		'=': { reserved: true },
-		',': { reserved: true },
-		'!': { reserved: true },
-		'@': { reserved: true },
-		'|': { reserved: true }
-	};
-	
-	function apply(operation, expression, params) {
-		/*jshint maxcomplexity:11 */
-		return expression.split(',').reduce(function (result, variable) {
-			var opts, value;
-	
-			opts = {};
-			if (variable.slice(-1) === '*') {
-				variable = variable.slice(0, -1);
-				opts.explode = true;
-			}
-			if (prefixRE.test(variable)) {
-				var prefix = prefixRE.exec(variable);
-				variable = prefix[1];
-				opts.maxLength = parseInt(prefix[2]);
-			}
-	
-			variable = uriEncoder.decode(variable);
-			value = params[variable];
-	
-			if (value === void 0 || value === null) {
-				return result;
-			}
-			if (Array.isArray(value)) {
-				result = value.reduce(function (result, value) {
-					if (result.length) {
-						result += opts.explode ? operation.separator : ',';
-						if (operation.named && opts.explode) {
-							result += operation.encoder(variable);
-							result += value.length ? '=' : operation.empty;
-						}
-					}
-					else {
-						result += operation.first;
-						if (operation.named) {
-							result += operation.encoder(variable);
-							result += value.length ? '=' : operation.empty;
-						}
-					}
-					result += operation.encoder(value);
-					return result;
-				}, result);
-			}
-			else if (typeof value === 'object') {
-				result = Object.keys(value).reduce(function (result, name) {
-					if (result.length) {
-						result += opts.explode ? operation.separator : ',';
-					}
-					else {
-						result += operation.first;
-						if (operation.named && !opts.explode) {
-							result += operation.encoder(variable);
-							result += value[name].length ? '=' : operation.empty;
-						}
-					}
-					result += operation.encoder(name);
-					result += opts.explode ? '=' : ',';
-					result += operation.encoder(value[name]);
-					return result;
-				}, result);
-			}
-			else {
-				value = String(value);
-				if (opts.maxLength) {
-					value = value.slice(0, opts.maxLength);
-				}
-				result += result.length ? operation.separator : operation.first;
-				if (operation.named) {
-					result += operation.encoder(variable);
-					result += value.length ? '=' : operation.empty;
-				}
-				result += operation.encoder(value);
-			}
-	
-			return result;
-		}, '');
-	}
-	
-	function expandExpression(expression, params) {
-		var operation;
-	
-		operation = operations[expression.slice(0,1)];
-		if (operation) {
-			expression = expression.slice(1);
-		}
-		else {
-			operation = operations[''];
-		}
-	
-		if (operation.reserved) {
-			throw new Error('Reserved expression operations are not supported');
-		}
-	
-		return apply(operation, expression, params);
-	}
-	
-	function expandTemplate(template, params) {
-		var start, end, uri;
-	
-		uri = '';
-		end = 0;
-		while (true) {
-			start = template.indexOf('{', end);
-			if (start === -1) {
-				// no more expressions
-				uri += template.slice(end);
-				break;
-			}
-			uri += template.slice(end, start);
-			end = template.indexOf('}', start) + 1;
-			uri += expandExpression(template.slice(start + 1, end - 1), params);
-		}
-	
-		return uri;
-	}
-	
-	module.exports = {
-	
-		/**
-		 * Expand a URI Template with parameters to form a URI.
-		 *
-		 * Full implementation (level 4) of rfc6570.
-		 * @see https://tools.ietf.org/html/rfc6570
-		 *
-		 * @param {string} template URI template
-		 * @param {Object} [params] params to apply to the template durring expantion
-		 * @returns {string} expanded URI
-		 */
-		expand: expandTemplate
-	
+	  return data;
 	};
 
 
@@ -23780,175 +23323,10 @@
 /* 205 */
 /***/ function(module, exports) {
 
-	/*
-	 * Copyright 2015-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	var charMap;
-	
-	charMap = (function () {
-		var strings = {
-			alpha: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
-			digit: '0123456789'
-		};
-	
-		strings.genDelims = ':/?#[]@';
-		strings.subDelims = '!$&\'()*+,;=';
-		strings.reserved = strings.genDelims + strings.subDelims;
-		strings.unreserved = strings.alpha + strings.digit + '-._~';
-		strings.url = strings.reserved + strings.unreserved;
-		strings.scheme = strings.alpha + strings.digit + '+-.';
-		strings.userinfo = strings.unreserved + strings.subDelims + ':';
-		strings.host = strings.unreserved + strings.subDelims;
-		strings.port = strings.digit;
-		strings.pchar = strings.unreserved + strings.subDelims + ':@';
-		strings.segment = strings.pchar;
-		strings.path = strings.segment + '/';
-		strings.query = strings.pchar + '/?';
-		strings.fragment = strings.pchar + '/?';
-	
-		return Object.keys(strings).reduce(function (charMap, set) {
-			charMap[set] = strings[set].split('').reduce(function (chars, myChar) {
-				chars[myChar] = true;
-				return chars;
-			}, {});
-			return charMap;
-		}, {});
-	}());
-	
-	function encode(str, allowed) {
-		if (typeof str !== 'string') {
-			throw new Error('String required for URL encoding');
-		}
-		return str.split('').map(function (myChar) {
-			if (allowed.hasOwnProperty(myChar)) {
-				return myChar;
-			}
-			var code = myChar.charCodeAt(0);
-			if (code <= 127) {
-				var encoded = code.toString(16).toUpperCase();
-	 			return '%' + (encoded.length % 2 === 1 ? '0' : '') + encoded;
-			}
-			else {
-				return encodeURIComponent(myChar).toUpperCase();
-			}
-		}).join('');
-	}
-	
-	function makeEncoder(allowed) {
-		allowed = allowed || charMap.unreserved;
-		return function (str) {
-			return encode(str, allowed);
-		};
-	}
-	
-	function decode(str) {
-		return decodeURIComponent(str);
-	}
-	
-	module.exports = {
-	
-		/*
-		 * Decode URL encoded strings
-		 *
-		 * @param {string} URL encoded string
-		 * @returns {string} URL decoded string
-		 */
-		decode: decode,
-	
-		/*
-		 * URL encode a string
-		 *
-		 * All but alpha-numerics and a very limited set of punctuation - . _ ~ are
-		 * encoded.
-		 *
-		 * @param {string} string to encode
-		 * @returns {string} URL encoded string
-		 */
-		encode: makeEncoder(),
-	
-		/*
-		* URL encode a URL
-		*
-		* All character permitted anywhere in a URL are left unencoded even
-		* if that character is not permitted in that portion of a URL.
-		*
-		* Note: This method is typically not what you want.
-		*
-		* @param {string} string to encode
-		* @returns {string} URL encoded string
-		*/
-		encodeURL: makeEncoder(charMap.url),
-	
-		/*
-		 * URL encode the scheme portion of a URL
-		 *
-		 * @param {string} string to encode
-		 * @returns {string} URL encoded string
-		 */
-		encodeScheme: makeEncoder(charMap.scheme),
-	
-		/*
-		 * URL encode the user info portion of a URL
-		 *
-		 * @param {string} string to encode
-		 * @returns {string} URL encoded string
-		 */
-		encodeUserInfo: makeEncoder(charMap.userinfo),
-	
-		/*
-		 * URL encode the host portion of a URL
-		 *
-		 * @param {string} string to encode
-		 * @returns {string} URL encoded string
-		 */
-		encodeHost: makeEncoder(charMap.host),
-	
-		/*
-		 * URL encode the port portion of a URL
-		 *
-		 * @param {string} string to encode
-		 * @returns {string} URL encoded string
-		 */
-		encodePort: makeEncoder(charMap.port),
-	
-		/*
-		 * URL encode a path segment portion of a URL
-		 *
-		 * @param {string} string to encode
-		 * @returns {string} URL encoded string
-		 */
-		encodePathSegment: makeEncoder(charMap.segment),
-	
-		/*
-		 * URL encode the path portion of a URL
-		 *
-		 * @param {string} string to encode
-		 * @returns {string} URL encoded string
-		 */
-		encodePath: makeEncoder(charMap.path),
-	
-		/*
-		 * URL encode the query portion of a URL
-		 *
-		 * @param {string} string to encode
-		 * @returns {string} URL encoded string
-		 */
-		encodeQuery: makeEncoder(charMap.query),
-	
-		/*
-		 * URL encode the fragment portion of a URL
-		 *
-		 * @param {string} string to encode
-		 * @returns {string} URL encoded string
-		 */
-		encodeFragment: makeEncoder(charMap.fragment)
-	
+	module.exports = function isCancel(value) {
+	  return !!(value && value.__CANCEL__);
 	};
 
 
@@ -23956,366 +23334,163 @@
 /* 206 */
 /***/ function(module, exports) {
 
-	/*
-	 * Copyright 2013-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	module.exports = {
-	
-		/**
-		 * Find objects within a graph the contain a property of a certain name.
-		 *
-		 * NOTE: this method will not discover object graph cycles.
-		 *
-		 * @param {*} obj object to search on
-		 * @param {string} prop name of the property to search for
-		 * @param {Function} callback function to receive the found properties and their parent
-		 */
-		findProperties: function findProperties(obj, prop, callback) {
-			if (typeof obj !== 'object' || obj === null) { return; }
-			if (prop in obj) {
-				callback(obj[prop], obj, prop);
-			}
-			Object.keys(obj).forEach(function (key) {
-				findProperties(obj[key], prop, callback);
-			});
-		}
-	
+	/**
+	 * Determines whether the specified URL is absolute
+	 *
+	 * @param {string} url The URL to test
+	 * @returns {boolean} True if the specified URL is absolute, otherwise false
+	 */
+	module.exports = function isAbsoluteURL(url) {
+	  // A URL is considered absolute if it begins with "<scheme>://" or "//" (protocol-relative URL).
+	  // RFC 3986 defines scheme name as a sequence of characters beginning with a letter and followed
+	  // by any combination of letters, digits, plus, period, or hyphen.
+	  return /^([a-z][a-z\d\+\-\.]*:)?\/\//i.test(url);
 	};
 
 
 /***/ },
 /* 207 */
-/***/ function(module, exports, __webpack_require__) {
+/***/ function(module, exports) {
 
-	/*
-	 * Copyright 2013-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
-	var attempt = __webpack_require__(208);
-	
 	/**
-	 * Create a promise whose work is started only when a handler is registered.
+	 * Creates a new URL by combining the specified URLs
 	 *
-	 * The work function will be invoked at most once. Thrown values will result
-	 * in promise rejection.
-	 *
-	 * @param {Function} work function whose ouput is used to resolve the
-	 *   returned promise.
-	 * @returns {Promise} a lazy promise
+	 * @param {string} baseURL The base URL
+	 * @param {string} relativeURL The relative URL
+	 * @returns {string} The combined URL
 	 */
-	function lazyPromise(work) {
-		var started, resolver, promise, then;
-	
-		started = false;
-	
-		promise = new Promise(function (resolve, reject) {
-			resolver = {
-				resolve: resolve,
-				reject: reject
-			};
-		});
-		then = promise.then;
-	
-		promise.then = function () {
-			if (!started) {
-				started = true;
-				attempt(work).then(resolver.resolve, resolver.reject);
-			}
-			return then.apply(promise, arguments);
-		};
-	
-		return promise;
-	}
-	
-	module.exports = lazyPromise;
+	module.exports = function combineURLs(baseURL, relativeURL) {
+	  return baseURL.replace(/\/+$/, '') + '/' + relativeURL.replace(/^\/+/, '');
+	};
 
 
 /***/ },
 /* 208 */
 /***/ function(module, exports) {
 
-	/*
-	 * Copyright 2015-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
 	/**
-	 * Attempt to invoke a function capturing the resulting value as a Promise
+	 * A `Cancel` is an object that is thrown when an operation is canceled.
 	 *
-	 * If the method throws, the caught value used to reject the Promise.
-	 *
-	 * @param {function} work function to invoke
-	 * @returns {Promise} Promise for the output of the work function
+	 * @class
+	 * @param {string=} message The message.
 	 */
-	function attempt(work) {
-		try {
-			return Promise.resolve(work());
-		}
-		catch (e) {
-			return Promise.reject(e);
-		}
+	function Cancel(message) {
+	  this.message = message;
 	}
 	
-	module.exports = attempt;
+	Cancel.prototype.toString = function toString() {
+	  return 'Cancel' + (this.message ? ': ' + this.message : '');
+	};
+	
+	Cancel.prototype.__CANCEL__ = true;
+	
+	module.exports = Cancel;
 
 
 /***/ },
 /* 209 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
-	/*
-	 * Copyright 2012-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
 	'use strict';
 	
+	var Cancel = __webpack_require__(208);
+	
 	/**
-	 * Create a new JSON converter with custom reviver/replacer.
+	 * A `CancelToken` is an object that can be used to request cancellation of an operation.
 	 *
-	 * The extended converter must be published to a MIME registry in order
-	 * to be used. The existing converter will not be modified.
-	 *
-	 * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON
-	 *
-	 * @param {function} [reviver=undefined] custom JSON.parse reviver
-	 * @param {function|Array} [replacer=undefined] custom JSON.stringify replacer
+	 * @class
+	 * @param {Function} executor The executor function.
 	 */
-	function createConverter(reviver, replacer) {
-		return {
+	function CancelToken(executor) {
+	  if (typeof executor !== 'function') {
+	    throw new TypeError('executor must be a function.');
+	  }
 	
-			read: function (str) {
-				return JSON.parse(str, reviver);
-			},
+	  var resolvePromise;
+	  this.promise = new Promise(function promiseExecutor(resolve) {
+	    resolvePromise = resolve;
+	  });
 	
-			write: function (obj) {
-				return JSON.stringify(obj, replacer);
-			},
+	  var token = this;
+	  executor(function cancel(message) {
+	    if (token.reason) {
+	      // Cancellation has already been requested
+	      return;
+	    }
 	
-			extend: createConverter
-	
-		};
+	    token.reason = new Cancel(message);
+	    resolvePromise(token.reason);
+	  });
 	}
 	
-	module.exports = createConverter();
+	/**
+	 * Throws a `Cancel` if cancellation has been requested.
+	 */
+	CancelToken.prototype.throwIfRequested = function throwIfRequested() {
+	  if (this.reason) {
+	    throw this.reason;
+	  }
+	};
+	
+	/**
+	 * Returns an object that contains a new `CancelToken` and a function that, when called,
+	 * cancels the `CancelToken`.
+	 */
+	CancelToken.source = function source() {
+	  var cancel;
+	  var token = new CancelToken(function executor(c) {
+	    cancel = c;
+	  });
+	  return {
+	    token: token,
+	    cancel: cancel
+	  };
+	};
+	
+	module.exports = CancelToken;
 
 
 /***/ },
 /* 210 */
 /***/ function(module, exports) {
 
-	/*
-	 * Copyright 2014-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Michael Jackson
-	 */
-	
-	/* global FormData, File, Blob */
-	
 	'use strict';
 	
-	function isFormElement(object) {
-		return object &&
-			object.nodeType === 1 && // Node.ELEMENT_NODE
-			object.tagName === 'FORM';
-	}
-	
-	function createFormDataFromObject(object) {
-		var formData = new FormData();
-	
-		var value;
-		for (var property in object) {
-			if (object.hasOwnProperty(property)) {
-				value = object[property];
-	
-				if (value instanceof File) {
-					formData.append(property, value, value.name);
-				} else if (value instanceof Blob) {
-					formData.append(property, value);
-				} else {
-					formData.append(property, String(value));
-				}
-			}
-		}
-	
-		return formData;
-	}
-	
-	module.exports = {
-	
-		write: function (object) {
-			if (typeof FormData === 'undefined') {
-				throw new Error('The multipart/form-data mime serializer requires FormData support');
-			}
-	
-			// Support FormData directly.
-			if (object instanceof FormData) {
-				return object;
-			}
-	
-			// Support <form> elements.
-			if (isFormElement(object)) {
-				return new FormData(object);
-			}
-	
-			// Support plain objects, may contain File/Blob as value.
-			if (typeof object === 'object' && object !== null) {
-				return createFormDataFromObject(object);
-			}
-	
-			throw new Error('Unable to create FormData from object ' + object);
-		}
-	
+	/**
+	 * Syntactic sugar for invoking a function and expanding an array for arguments.
+	 *
+	 * Common use case would be to use `Function.prototype.apply`.
+	 *
+	 *  ```js
+	 *  function f(x, y, z) {}
+	 *  var args = [1, 2, 3];
+	 *  f.apply(null, args);
+	 *  ```
+	 *
+	 * With `spread` this example can be re-written.
+	 *
+	 *  ```js
+	 *  spread(function(x, y, z) {})([1, 2, 3]);
+	 *  ```
+	 *
+	 * @param {Function} callback
+	 * @returns {Function}
+	 */
+	module.exports = function spread(callback) {
+	  return function wrap(arr) {
+	    return callback.apply(null, arr);
+	  };
 	};
 
 
 /***/ },
 /* 211 */
-/***/ function(module, exports) {
-
-	/*
-	 * Copyright 2012-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
-	'use strict';
-	
-	module.exports = {
-	
-		read: function (str) {
-			return str;
-		},
-	
-		write: function (obj) {
-			return obj.toString();
-		}
-	
-	};
-
-
-/***/ },
-/* 212 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
-	
-	/**
-	 * Created by t.gieselmann on 11/25/16.
-	 */
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function (require) {
-	    'use strict';
-	
-	    var interceptor = __webpack_require__(194);
-	
-	    return interceptor({
-	        request: function request(_request /*, config, meta */) {
-	            /* If the URI is a URI Template per RFC 6570 (http://tools.ietf.org/html/rfc6570), trim out the template part */
-	            if (_request.path.indexOf('{') === -1) {
-	                return _request;
-	            } else {
-	                _request.path = _request.path.split('{')[0];
-	                return _request;
-	            }
-	        }
-	    });
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-/***/ },
-/* 213 */
-/***/ function(module, exports, __webpack_require__) {
-
-	/*
-	 * Copyright 2012-2016 the original author or authors
-	 * @license MIT, see LICENSE.txt for details
-	 *
-	 * @author Scott Andrews
-	 */
-	
-	'use strict';
-	
-	var interceptor;
-	
-	interceptor = __webpack_require__(194);
-	
-	/**
-	 * Rejects the response promise based on the status code.
-	 *
-	 * Codes greater than or equal to the provided value are rejected.  Default
-	 * value 400.
-	 *
-	 * @param {Client} [client] client to wrap
-	 * @param {number} [config.code=400] code to indicate a rejection
-	 *
-	 * @returns {Client}
-	 */
-	module.exports = interceptor({
-		init: function (config) {
-			config.code = config.code || 400;
-			return config;
-		},
-		response: function (response, config) {
-			if (response.status && response.status.code >= config.code) {
-				return Promise.reject(response);
-			}
-			return response;
-		}
-	});
-
-
-/***/ },
-/* 214 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
-	
-	/**
-	 * Created by t.gieselmann on 11/25/16.
-	 */
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function () {
-	    'use strict';
-	
-	    /* Convert a single or array of resources into "URI1\nURI2\nURI3..." */
-	
-	    return {
-	        read: function read(str /*, opts */) {
-	            return str.split('\n');
-	        },
-	        write: function write(obj /*, opts */) {
-	            // If this is an Array, extract the self URI and then join using a newline
-	            if (obj instanceof Array) {
-	                return obj.map(function (resource) {
-	                    return resource._links.self.href;
-	                }).join('\n');
-	            } else {
-	                // otherwise, just return the self URI
-	                return obj._links.self.href;
-	            }
-	        }
-	    };
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
-/***/ },
-/* 215 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(__dirname) {'use strict';
@@ -24324,7 +23499,7 @@
 	 * Created by t.gieselmann on 11/13/16.
 	 */
 	
-	var path = __webpack_require__(216);
+	var path = __webpack_require__(212);
 	
 	module.exports = {
 	    entry: './src/main/resources/static/app.js',
@@ -24350,7 +23525,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, "/"))
 
 /***/ },
-/* 216 */
+/* 212 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process) {// Copyright Joyent, Inc. and other Node contributors.

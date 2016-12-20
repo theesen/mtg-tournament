@@ -2,10 +2,11 @@
   "name": "mtg-tournament",
   "version": "0.0.1",
   "dependencies": {
-    "webpack": "1.13.3",
+    "axios": "^0.15.3",
     "babel": "6.5.0",
     "react": "15.3.2",
-    "rest": "2.0.0"
+    "rest": "2.0.0",
+    "webpack": "1.13.3"
   },
   "devDependencies": {
     "babel-core": "^6.18.2",
